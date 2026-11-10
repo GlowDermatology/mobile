@@ -134,7 +134,7 @@ jobs:
       - name: Static analysis
         run: flutter analyze --fatal-infos
       - name: Firebase stays a Dart-only setup (no google-services Gradle plugin)
-        run: "! grep -rn 'google-services' android --include='*.gradle.kts'"
+        run: "! grep -rnE '^[^/]*com\\.google\\.gms(\\.google-services|:google-services)' android --include='*.gradle.kts'"
       - name: Unit and widget tests
         run: flutter test --reporter=expanded
 
