@@ -62,3 +62,6 @@ tool/e2e/playwright-report/
 coverage/
 *.iml
 .idea/
+
+# Gradle output of the Android project
+android/build/
