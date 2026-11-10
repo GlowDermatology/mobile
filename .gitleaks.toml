@@ -1,0 +1,12 @@
+# Same baseline as the frontend and backend repositories.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test fixtures and Firebase client identifiers (not secrets: they ship inside every app binary; restrict them in Google Cloud instead)"
+paths = [
+  '''^test/''',
+  '''^tool/e2e/''',
+  '''^lib/firebase_options\.dart$''',
+  '''^ios/Runner/GoogleService-Info\.plist$''',
+]

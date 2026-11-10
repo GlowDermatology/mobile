@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The flutter tool needs it to communicate with the running application
+         to allow setting breakpoints, to provide hot reload, etc.
+    -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Debug builds only: plain HTTP to a local backend (emulator 10.0.2.2 or a
+         computer on the same Wi-Fi). Release builds stay HTTPS-only. -->
+    <application android:networkSecurityConfig="@xml/network_security_config" />
+</manifest>

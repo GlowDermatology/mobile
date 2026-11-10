@@ -1,0 +1,7 @@
+{
+  "API_BASE_URL": "/api/v1/",
+  "ALLOW_DEV_TOOLS": true,
+  "PLATFORM_OVERRIDE": "android",
+  "E2E": true,
+  "FIREBASE_ENABLED": false
+}
