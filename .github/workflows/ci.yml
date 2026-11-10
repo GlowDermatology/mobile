@@ -1,0 +1,189 @@
+# Mobile pipeline (Flutter). Pull requests and main: security scans, then the
+# Dart checks and unit/widget tests, then a debug Android APK (artifact) and the
+# web preview build. Nothing is published: store releases are manual
+# (docs/release.md). iOS needs macOS and signing, so it is not built here.
+#
+#   security-gitleaks  ┐
+#   security-semgrep   ├─► check ─► build-android
+#   security-deps      │        └─► build-web
+#   security-workflows ┘
+#
+# Conventions shared with the backend and frontend pipelines: no default
+# permissions, every action pinned by commit SHA, scanner images pinned by
+# digest, checkout without persisted credentials. Flutter is installed from
+# Google's release archive and verified against its published SHA-256 (no
+# third-party setup action). CodeQL has no Dart support and there is no
+# Dockerfile, so security-codeql and security-iac have no counterpart here.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  FLUTTER_VERSION: 3.47.9
+  FLUTTER_SHA256: 25ed8c3c29d51a7353f2a944310b478af8214920639524b19c50a19e6c044c5a
+
+jobs:
+  # ------------------------------------------------------------------ stage 1: security
+  security-gitleaks:
+    name: security-gitleaks
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Secrets in the whole git history
+        run: >-
+          docker run --rm -v "$PWD:/repo" -w /repo
+          zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+          git --redact --verbose --exit-code 1 /repo
+
+  security-semgrep:
+    name: security-semgrep
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: SAST (secrets, workflows, Kotlin/Swift sources)
+        run: >-
+          docker run --rm -v "$PWD:/src" -w /src
+          semgrep/semgrep:1.183.0@sha256:2e45517a85e13a9cca14a2a00df6bb48affd66b8ebfae1b0991cd57578362fb0
+          semgrep scan --metrics=off --error --severity ERROR
+          --config p/secrets --config p/github-actions --config p/kotlin --config p/swift
+          --sarif --sarif-output=semgrep.sarif
+      - if: always() && hashFiles('semgrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  security-deps:
+    name: security-deps
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: trivy (pubspec.lock and e2e package-lock CVEs, embedded secrets)
+        run: >-
+          docker run --rm -v "$PWD:/src" -w /src
+          -e TRIVY_DB_REPOSITORY=public.ecr.aws/aquasecurity/trivy-db:2,ghcr.io/aquasecurity/trivy-db:2,mirror.gcr.io/aquasec/trivy-db:2
+          aquasec/trivy:0.76.1@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c
+          fs --scanners vuln,secret --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress
+          --format sarif --output trivy-fs.sarif .
+      - if: always() && hashFiles('trivy-fs.sarif') != ''
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+
+  security-workflows:
+    name: security-workflows
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: false
+      - name: zizmor (GitHub workflow security)
+        run: uvx zizmor@1.32.0 --offline --min-severity medium .github/workflows
+
+  # ------------------------------------------------------------------ stage 2: checks
+  check:
+    name: check
+    needs: [security-gitleaks, security-semgrep, security-deps, security-workflows]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Flutter (official archive, SHA-256 verified)
+        run: |
+          curl -sSfL -o flutter.tar.xz "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+          echo "${FLUTTER_SHA256}  flutter.tar.xz" | sha256sum -c -
+          tar xJf flutter.tar.xz -C "$RUNNER_TEMP" && rm flutter.tar.xz
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - run: flutter config --no-analytics && flutter --version
+      - run: flutter pub get --enforce-lockfile
+      - name: Formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Static analysis
+        run: flutter analyze --fatal-infos
+      - name: Firebase stays a Dart-only setup (no google-services Gradle plugin)
+        run: "! grep -rn 'google-services' android --include='*.gradle.kts'"
+      - name: Unit and widget tests
+        run: flutter test --reporter=expanded
+
+  # ------------------------------------------------------------------ stage 3: builds
+  build-android:
+    name: build-android
+    needs: [check]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Flutter (official archive, SHA-256 verified)
+        run: |
+          curl -sSfL -o flutter.tar.xz "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+          echo "${FLUTTER_SHA256}  flutter.tar.xz" | sha256sum -c -
+          tar xJf flutter.tar.xz -C "$RUNNER_TEMP" && rm flutter.tar.xz
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Debug APK against staging (install it on a phone, docs/running-locally.md)
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_21_X64 }}
+        run: |
+          flutter config --no-analytics
+          flutter build apk --debug --dart-define-from-file=tool/defines/staging.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: glow-derma-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 14
+
+  build-web:
+    name: build-web
+    needs: [check]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Flutter (official archive, SHA-256 verified)
+        run: |
+          curl -sSfL -o flutter.tar.xz "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+          echo "${FLUTTER_SHA256}  flutter.tar.xz" | sha256sum -c -
+          tar xJf flutter.tar.xz -C "$RUNNER_TEMP" && rm flutter.tar.xz
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Web preview build (local verification target, never deployed)
+        run: |
+          flutter config --no-analytics
+          flutter build web --release --dart-define-from-file=tool/defines/local-web.json
