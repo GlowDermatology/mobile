@@ -16,7 +16,9 @@ val keystoreProperties = Properties().apply {
 
 android {
     namespace = "uz.glowderma.app"
-    compileSdk = flutter.compileSdkVersion
+    // 37: required by flutter_local_notifications 23 and current AndroidX (targetSdk stays
+    // the Flutter default).
+    compileSdk = maxOf(37, flutter.compileSdkVersion)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
