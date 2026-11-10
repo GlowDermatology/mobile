@@ -25,7 +25,9 @@ abstract final class AppConfig {
 
   /// `ios` or `android`; empty means "detect". The web preview must claim a
   /// mobile platform because the API reserves `web` for the website server.
-  static const String platformOverride = String.fromEnvironment('PLATFORM_OVERRIDE');
+  static const String platformOverride = String.fromEnvironment(
+    'PLATFORM_OVERRIDE',
+  );
 
   /// Public website, used for the legal pages links and app links.
   static const String websiteUrl = String.fromEnvironment(

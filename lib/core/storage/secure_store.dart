@@ -7,7 +7,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// only, never synced to iCloud, readable after the first unlock so a push or
 /// a background refresh works.
 const FlutterSecureStorage secureStorage = FlutterSecureStorage(
-  iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock_this_device, synchronizable: false),
+  iOptions: IOSOptions(
+    accessibility: KeychainAccessibility.first_unlock_this_device,
+    synchronizable: false,
+  ),
   aOptions: AndroidOptions(),
 );
 
@@ -53,7 +56,10 @@ class TokenStore {
       final json = jsonDecode(raw) as Map<String, dynamic>;
       refresh = json['refresh'] as String?;
       refreshExpiresAt = DateTime.tryParse('${json['refresh_expires_at']}');
-      if (refreshExpiresAt != null && refreshExpiresAt!.isBefore(DateTime.now())) await clear();
+      if (refreshExpiresAt != null &&
+          refreshExpiresAt!.isBefore(DateTime.now())) {
+        await clear();
+      }
     } on Object {
       await clear();
     }
@@ -65,7 +71,13 @@ class TokenStore {
     final newRefreshExp = '${tokens['refresh_expires_at']}';
     // Persist the new refresh token before anything else uses the pair:
     // the old one is useless after a rotation.
-    await _storage.write(key: _Keys.session, value: jsonEncode({'refresh': newRefresh, 'refresh_expires_at': newRefreshExp}));
+    await _storage.write(
+      key: _Keys.session,
+      value: jsonEncode({
+        'refresh': newRefresh,
+        'refresh_expires_at': newRefreshExp,
+      }),
+    );
     refresh = newRefresh;
     refreshExpiresAt = DateTime.tryParse(newRefreshExp);
     access = tokens['access'] as String?;
@@ -86,5 +98,6 @@ class TokenStore {
   }
 
   Future<String?> readDeviceId() => _storage.read(key: _Keys.deviceId);
-  Future<void> writeDeviceId(String id) => _storage.write(key: _Keys.deviceId, value: id);
+  Future<void> writeDeviceId(String id) =>
+      _storage.write(key: _Keys.deviceId, value: id);
 }

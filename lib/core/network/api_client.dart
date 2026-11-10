@@ -33,16 +33,18 @@ class ApiClient {
   }) {
     final base = _resolveBase(baseUrl ?? AppConfig.apiBaseUrl);
     BaseOptions options() => BaseOptions(
-          baseUrl: base,
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 30),
-          headers: {'Accept': 'application/json'},
-        );
+      baseUrl: base,
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 30),
+      headers: {'Accept': 'application/json'},
+    );
     _dio = Dio(options());
     _bare = Dio(options());
     for (final dio in [_dio, _bare]) {
       if (adapter != null) dio.httpClientAdapter = adapter;
-      dio.interceptors.add(InterceptorsWrapper(onRequest: (o, h) => h.next(_withDeviceHeaders(o))));
+      dio.interceptors.add(
+        InterceptorsWrapper(onRequest: (o, h) => h.next(_withDeviceHeaders(o))),
+      );
     }
   }
 
@@ -58,7 +60,9 @@ class ApiClient {
 
   static String _resolveBase(String base) {
     final withSlash = base.endsWith('/') ? base : '$base/';
-    if (kIsWeb && withSlash.startsWith('/')) return Uri.base.resolve(withSlash).toString();
+    if (kIsWeb && withSlash.startsWith('/')) {
+      return Uri.base.resolve(withSlash).toString();
+    }
     return withSlash;
   }
 
@@ -67,22 +71,51 @@ class ApiClient {
     o.headers['X-GD-Platform'] = device.platform;
     o.headers['X-GD-App-Version'] = device.appVersion;
     o.headers['Accept-Language'] = language().code;
-    if (o.path == 'auth/login/' && tokens.deviceKey != null) o.headers['X-GD-Device-Key'] = tokens.deviceKey;
+    if (o.path == 'auth/login/' && tokens.deviceKey != null) {
+      o.headers['X-GD-Device-Key'] = tokens.deviceKey;
+    }
     return o;
   }
 
-  Future<dynamic> get(String path, {Map<String, dynamic>? query}) => _send('GET', path, query: query);
+  Future<dynamic> get(String path, {Map<String, dynamic>? query}) =>
+      _send('GET', path, query: query);
 
-  Future<dynamic> post(String path, {Object? body, Map<String, dynamic>? query, String? idempotencyKey}) =>
-      _send('POST', path, body: body ?? const <String, dynamic>{}, query: query, idempotencyKey: idempotencyKey);
+  Future<dynamic> post(
+    String path, {
+    Object? body,
+    Map<String, dynamic>? query,
+    String? idempotencyKey,
+  }) => _send(
+    'POST',
+    path,
+    body: body ?? const <String, dynamic>{},
+    query: query,
+    idempotencyKey: idempotencyKey,
+  );
 
   Future<dynamic> patch(String path, {Object? body, String? idempotencyKey}) =>
-      _send('PATCH', path, body: body ?? const <String, dynamic>{}, idempotencyKey: idempotencyKey);
+      _send(
+        'PATCH',
+        path,
+        body: body ?? const <String, dynamic>{},
+        idempotencyKey: idempotencyKey,
+      );
 
-  Future<dynamic> put(String path, {Object? body}) => _send('PUT', path, body: body ?? const <String, dynamic>{});
+  Future<dynamic> put(String path, {Object? body}) =>
+      _send('PUT', path, body: body ?? const <String, dynamic>{});
 
-  Future<dynamic> delete(String path, {Object? body, Map<String, dynamic>? query, String? idempotencyKey}) =>
-      _send('DELETE', path, body: body, query: query, idempotencyKey: idempotencyKey);
+  Future<dynamic> delete(
+    String path, {
+    Object? body,
+    Map<String, dynamic>? query,
+    String? idempotencyKey,
+  }) => _send(
+    'DELETE',
+    path,
+    body: body,
+    query: query,
+    idempotencyKey: idempotencyKey,
+  );
 
   Future<dynamic> _send(
     String method,
@@ -111,11 +144,14 @@ class ApiClient {
       } on DioException catch (e) {
         final error = _toApiException(e);
         if (error.status == 401 && !isAuthRoute) {
-          if (error.code == 'SESSION_EXPIRED' || error.code == 'password_changed') {
+          if (error.code == 'SESSION_EXPIRED' ||
+              error.code == 'password_changed') {
             await _end(error.code, error.message);
             throw error;
           }
-          if (error.code == 'not_authenticated' && tokens.hasSession && attempt == 0) {
+          if (error.code == 'not_authenticated' &&
+              tokens.hasSession &&
+              attempt == 0) {
             // Retry once: with the token another request already refreshed,
             // or after refreshing ourselves.
             if (tokens.access == used) tokens.access = null;
@@ -131,23 +167,36 @@ class ApiClient {
 
   Future<void> _ensureAccess() async {
     final exp = tokens.accessExpiresAt;
-    if (tokens.access != null && exp != null && exp.isAfter(DateTime.now().add(const Duration(seconds: 30)))) return;
+    if (tokens.access != null &&
+        exp != null &&
+        exp.isAfter(DateTime.now().add(const Duration(seconds: 30)))) {
+      return;
+    }
     await refreshTokens();
   }
 
   /// Rotates the token pair; concurrent callers share one request.
-  Future<void> refreshTokens() => _refreshing ??= _doRefresh().whenComplete(() => _refreshing = null);
+  Future<void> refreshTokens() =>
+      _refreshing ??= _doRefresh().whenComplete(() => _refreshing = null);
 
   Future<void> _doRefresh() async {
     final refresh = tokens.refresh;
     if (refresh == null) throw const SessionEnded('not_authenticated');
     try {
-      final response = await _bare.post<dynamic>('auth/refresh/', data: {'refresh': refresh});
+      final response = await _bare.post<dynamic>(
+        'auth/refresh/',
+        data: {'refresh': refresh},
+      );
       await tokens.save((response.data as Map).cast<String, dynamic>());
     } on DioException catch (e) {
       final error = _toApiException(e);
       if (error.status == 401) {
-        await _end(error.code, error.status == 401 && error.code == 'password_changed' ? error.message : '');
+        await _end(
+          error.code,
+          error.status == 401 && error.code == 'password_changed'
+              ? error.message
+              : '',
+        );
         throw SessionEnded(error.code, error.message);
       }
       throw error; // 429, 5xx, offline: keep the tokens and try again later
@@ -164,7 +213,10 @@ class ApiClient {
     final refresh = tokens.refresh;
     if (refresh != null) {
       try {
-        await _bare.post<dynamic>('auth/logout/', data: {'refresh': refresh, 'scope': 'current'});
+        await _bare.post<dynamic>(
+          'auth/logout/',
+          data: {'refresh': refresh, 'scope': 'current'},
+        );
       } on DioException {
         // a 401 means the session is already over; offline: the token expires
       }
@@ -175,7 +227,13 @@ class ApiClient {
   ApiException _toApiException(DioException e) {
     final response = e.response;
     if (response == null) return ApiException.network;
-    final retryAfter = int.tryParse(response.headers.value('retry-after') ?? '');
-    return ApiException.fromEnvelope(response.statusCode ?? 0, response.data, retryAfter: retryAfter);
+    final retryAfter = int.tryParse(
+      response.headers.value('retry-after') ?? '',
+    );
+    return ApiException.fromEnvelope(
+      response.statusCode ?? 0,
+      response.data,
+      retryAfter: retryAfter,
+    );
   }
 }

@@ -11,7 +11,11 @@ abstract final class Strings {
     'Нет соединения с интернетом. Проверьте связь и повторите.',
     'No internet connection. Check your connection and try again.',
   );
-  static const unexpectedError = Tr('Kutilmagan xato. Qayta urinib ko‘ring.', 'Непредвиденная ошибка. Повторите попытку.', 'Unexpected error. Please try again.');
+  static const unexpectedError = Tr(
+    'Kutilmagan xato. Qayta urinib ko‘ring.',
+    'Непредвиденная ошибка. Повторите попытку.',
+    'Unexpected error. Please try again.',
+  );
   static const cancel = Tr('Bekor qilish', 'Отмена', 'Cancel');
   static const ok = Tr('Tushunarli', 'Понятно', 'OK');
   static const save = Tr('Saqlash', 'Сохранить', 'Save');

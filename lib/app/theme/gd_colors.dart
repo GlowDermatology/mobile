@@ -37,7 +37,14 @@ class GdColors extends ThemeExtension<GdColors> {
   final Color surface, surfaceRaised, ink, inkMuted, line, lineStrong;
   final Color nav, navInk, navInkMuted, banner, bannerInk, bannerInkSoft;
   final Color imageWell, skeleton;
-  final Color success, successSoft, danger, dangerStrong, dangerSoft, warning, warningSoft, scrim;
+  final Color success,
+      successSoft,
+      danger,
+      dangerStrong,
+      dangerSoft,
+      warning,
+      warningSoft,
+      scrim;
 
   static const light = GdColors(
     gold: Color(0xFFC9A24B),
@@ -101,7 +108,8 @@ class GdColors extends ThemeExtension<GdColors> {
   GdColors copyWith() => this;
 
   @override
-  GdColors lerp(ThemeExtension<GdColors>? other, double t) => t < 0.5 || other is! GdColors ? this : other;
+  GdColors lerp(ThemeExtension<GdColors>? other, double t) =>
+      t < 0.5 || other is! GdColors ? this : other;
 }
 
 extension GdThemeContext on BuildContext {
@@ -119,18 +127,25 @@ class GdText {
   static const display = 'CormorantGaramond';
   static const body = 'Manrope';
 
-  static TextStyle _style(String family, double size, double height, FontWeight weight, Color color, {double spacing = 0}) =>
-      TextStyle(
-        fontFamily: family,
-        fontSize: size,
-        height: height / size,
-        fontWeight: weight,
-        fontVariations: [FontVariation.weight(weight.value.toDouble())],
-        letterSpacing: spacing,
-        color: color,
-      );
+  static TextStyle _style(
+    String family,
+    double size,
+    double height,
+    FontWeight weight,
+    Color color, {
+    double spacing = 0,
+  }) => TextStyle(
+    fontFamily: family,
+    fontSize: size,
+    height: height / size,
+    fontWeight: weight,
+    fontVariations: [FontVariation.weight(weight.value.toDouble())],
+    letterSpacing: spacing,
+    color: color,
+  );
 
-  TextStyle get displayLg => _style(display, 34, 40, FontWeight.w600, c.ink, spacing: -0.34);
+  TextStyle get displayLg =>
+      _style(display, 34, 40, FontWeight.w600, c.ink, spacing: -0.34);
   TextStyle get title => _style(display, 26, 32, FontWeight.w600, c.ink);
   TextStyle get heading => _style(body, 18, 24, FontWeight.w700, c.ink);
   TextStyle get subheading => _style(body, 16, 22, FontWeight.w600, c.ink);
@@ -138,7 +153,9 @@ class GdText {
   TextStyle get bodySm => _style(body, 13, 18, FontWeight.w400, c.inkMuted);
   TextStyle get label => _style(body, 14, 18, FontWeight.w600, c.ink);
   TextStyle get caption => _style(body, 12, 16, FontWeight.w500, c.inkMuted);
-  TextStyle get overline => _style(body, 11, 14, FontWeight.w700, c.inkMuted, spacing: 0.88);
+  TextStyle get overline =>
+      _style(body, 11, 14, FontWeight.w700, c.inkMuted, spacing: 0.88);
   TextStyle get price => _style(body, 17, 22, FontWeight.w700, c.ink);
-  TextStyle get priceLg => _style(body, 24, 30, FontWeight.w800, c.ink, spacing: -0.24);
+  TextStyle get priceLg =>
+      _style(body, 24, 30, FontWeight.w800, c.ink, spacing: -0.24);
 }

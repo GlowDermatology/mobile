@@ -4,11 +4,11 @@ import '../../../core/network/json.dart';
 enum CartLineStatus { ok, insufficient, outOfStock, unavailable }
 
 CartLineStatus _status(Object? v) => switch (v) {
-      'insufficient' => CartLineStatus.insufficient,
-      'out_of_stock' => CartLineStatus.outOfStock,
-      'unavailable' => CartLineStatus.unavailable,
-      _ => CartLineStatus.ok,
-    };
+  'insufficient' => CartLineStatus.insufficient,
+  'out_of_stock' => CartLineStatus.outOfStock,
+  'unavailable' => CartLineStatus.unavailable,
+  _ => CartLineStatus.ok,
+};
 
 class CartLine {
   const CartLine({
@@ -29,21 +29,21 @@ class CartLine {
   });
 
   factory CartLine.fromJson(Json j) => CartLine(
-        productId: asInt(j['product_id']),
-        name: asString(j['name']),
-        volume: asString(j['volume']),
-        imageUrl: asStringOrNull(j['main_image_url']),
-        unitPrice: asInt(j['unit_price']),
-        promo: asBool(j['promo']),
-        quantity: asInt(j['quantity'], 1),
-        lineTotal: asInt(j['line_total']),
-        available: asInt(j['available']),
-        maxQuantity: asInt(j['max_quantity']),
-        maxReached: asBool(j['max_reached']),
-        status: _status(j['status']),
-        priceChanged: asBool(j['price_changed']),
-        previousPrice: asIntOrNull(j['previous_price']),
-      );
+    productId: asInt(j['product_id']),
+    name: asString(j['name']),
+    volume: asString(j['volume']),
+    imageUrl: asStringOrNull(j['main_image_url']),
+    unitPrice: asInt(j['unit_price']),
+    promo: asBool(j['promo']),
+    quantity: asInt(j['quantity'], 1),
+    lineTotal: asInt(j['line_total']),
+    available: asInt(j['available']),
+    maxQuantity: asInt(j['max_quantity']),
+    maxReached: asBool(j['max_reached']),
+    status: _status(j['status']),
+    priceChanged: asBool(j['price_changed']),
+    previousPrice: asIntOrNull(j['previous_price']),
+  );
 
   final int productId;
   final String name;
@@ -61,21 +61,21 @@ class CartLine {
   final int? previousPrice;
 
   CartLine withQuantity(int q) => CartLine(
-        productId: productId,
-        name: name,
-        volume: volume,
-        imageUrl: imageUrl,
-        unitPrice: unitPrice,
-        promo: promo,
-        quantity: q,
-        lineTotal: unitPrice * q,
-        available: available,
-        maxQuantity: maxQuantity,
-        maxReached: q >= maxQuantity && maxQuantity > 0,
-        status: status,
-        priceChanged: priceChanged,
-        previousPrice: previousPrice,
-      );
+    productId: productId,
+    name: name,
+    volume: volume,
+    imageUrl: imageUrl,
+    unitPrice: unitPrice,
+    promo: promo,
+    quantity: q,
+    lineTotal: unitPrice * q,
+    available: available,
+    maxQuantity: maxQuantity,
+    maxReached: q >= maxQuantity && maxQuantity > 0,
+    status: status,
+    priceChanged: priceChanged,
+    previousPrice: previousPrice,
+  );
 }
 
 class Cart {
@@ -145,7 +145,10 @@ class Cart {
   Cart withLineQuantity(int productId, int quantity) {
     final lines = [
       for (final l in items)
-        if (l.productId != productId) l else if (quantity > 0) l.withQuantity(quantity),
+        if (l.productId != productId)
+          l
+        else if (quantity > 0)
+          l.withQuantity(quantity),
     ];
     final okLines = lines.where((l) => l.status == CartLineStatus.ok);
     return Cart(
@@ -153,7 +156,9 @@ class Cart {
       itemCount: lines.length,
       quantityTotal: lines.fold(0, (s, l) => s + l.quantity),
       itemsSubtotal: okLines.fold(0, (s, l) => s + l.lineTotal),
-      promoSubtotal: okLines.where((l) => l.promo).fold(0, (s, l) => s + l.lineTotal),
+      promoSubtotal: okLines
+          .where((l) => l.promo)
+          .fold(0, (s, l) => s + l.lineTotal),
       hasProblems: hasProblems,
       cashbackAvailable: cashbackAvailable,
       maxUsablePickup: maxUsablePickup,

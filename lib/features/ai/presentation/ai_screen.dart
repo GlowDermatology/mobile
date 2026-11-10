@@ -25,32 +25,59 @@ class AiScreen extends StatelessWidget {
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              SizedBox.square(
-                dimension: 190,
-                child: GdRings(
-                  color: c.gold.withValues(alpha: 0.7),
-                  child: Center(
-                    child: Container(
-                      width: 84,
-                      height: 84,
-                      decoration: BoxDecoration(color: c.goldSoft, shape: BoxShape.circle),
-                      child: Icon(Icons.auto_awesome, size: 38, color: c.goldInk),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox.square(
+                  dimension: 190,
+                  child: GdRings(
+                    color: c.gold.withValues(alpha: 0.7),
+                    child: Center(
+                      child: Container(
+                        width: 84,
+                        height: 84,
+                        decoration: BoxDecoration(
+                          color: c.goldSoft,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.auto_awesome,
+                          size: 38,
+                          color: c.goldInk,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              Text(_title.of(context), style: context.gdText.displayLg, textAlign: TextAlign.center),
-              const SizedBox(height: 10),
-              Text(_body.of(context), style: context.gdText.bodyMd.copyWith(color: c.inkMuted), textAlign: TextAlign.center),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                decoration: BoxDecoration(color: c.goldSoft, borderRadius: BorderRadius.circular(20)),
-                child: Text(Strings.comingSoon.of(context).toUpperCase(), style: context.gdText.overline.copyWith(color: c.goldInk)),
-              ),
-            ]),
+                const SizedBox(height: 24),
+                Text(
+                  _title.of(context),
+                  style: context.gdText.displayLg,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  _body.of(context),
+                  style: context.gdText.bodyMd.copyWith(color: c.inkMuted),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: c.goldSoft,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    Strings.comingSoon.of(context).toUpperCase(),
+                    style: context.gdText.overline.copyWith(color: c.goldInk),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -13,8 +13,10 @@ enum AppLanguage {
 
   Locale get locale => Locale(code);
 
-  static AppLanguage fromCode(String? code) =>
-      AppLanguage.values.firstWhere((l) => l.code == code, orElse: () => AppLanguage.uz);
+  static AppLanguage fromCode(String? code) => AppLanguage.values.firstWhere(
+    (l) => l.code == code,
+    orElse: () => AppLanguage.uz,
+  );
 }
 
 /// One UI string in the three app languages, kept side by side so a
@@ -32,12 +34,13 @@ class Tr {
   final String en;
 
   String get(AppLanguage language) => switch (language) {
-        AppLanguage.uz => uz,
-        AppLanguage.ru => ru,
-        AppLanguage.en => en,
-      };
+    AppLanguage.uz => uz,
+    AppLanguage.ru => ru,
+    AppLanguage.en => en,
+  };
 
-  String of(BuildContext context) => get(AppLanguage.fromCode(Localizations.localeOf(context).languageCode));
+  String of(BuildContext context) =>
+      get(AppLanguage.fromCode(Localizations.localeOf(context).languageCode));
 
   /// Replaces `{name}` placeholders.
   String fmt(BuildContext context, Map<String, Object> values) {
@@ -48,5 +51,6 @@ class Tr {
 }
 
 extension TrContext on BuildContext {
-  AppLanguage get language => AppLanguage.fromCode(Localizations.localeOf(this).languageCode);
+  AppLanguage get language =>
+      AppLanguage.fromCode(Localizations.localeOf(this).languageCode);
 }

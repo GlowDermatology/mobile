@@ -23,16 +23,33 @@ class UpdateRequiredScreen extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(28),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            const GdLogo(size: 88),
-            const SizedBox(height: 28),
-            Text(_title.of(context), style: context.gdText.displayLg, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            Text(error.message, style: context.gdText.bodyMd, textAlign: TextAlign.center),
-            const SizedBox(height: 28),
-            if (storeUrl != null)
-              GdButton(label: _update.of(context), onPressed: () => launchUrl(Uri.parse(storeUrl), mode: LaunchMode.externalApplication)),
-          ]),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const GdLogo(size: 88),
+              const SizedBox(height: 28),
+              Text(
+                _title.of(context),
+                style: context.gdText.displayLg,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                error.message,
+                style: context.gdText.bodyMd,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 28),
+              if (storeUrl != null)
+                GdButton(
+                  label: _update.of(context),
+                  onPressed: () => launchUrl(
+                    Uri.parse(storeUrl),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

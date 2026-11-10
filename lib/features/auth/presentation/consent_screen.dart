@@ -49,21 +49,46 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
       appBar: GdHeader(title: _title.of(context)),
       body: settings.when(
         loading: () => const GdLoading(),
-        error: (e, _) => GdErrorView(error: e, onRetry: () => ref.invalidate(publicSettingsProvider)),
-        data: (s) => ListView(padding: const EdgeInsets.all(20), children: [
-          Text(_body.of(context), style: context.gdText.bodyMd),
-          const SizedBox(height: 20),
-          GdCard(child: Text(s.terms, style: context.gdText.bodySm.copyWith(color: context.gd.ink))),
-          const SizedBox(height: 12),
-          GdCard(child: Text(s.privacyPolicy, style: context.gdText.bodySm.copyWith(color: context.gd.ink))),
-        ]),
+        error: (e, _) => GdErrorView(
+          error: e,
+          onRetry: () => ref.invalidate(publicSettingsProvider),
+        ),
+        data: (s) => ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Text(_body.of(context), style: context.gdText.bodyMd),
+            const SizedBox(height: 20),
+            GdCard(
+              child: Text(
+                s.terms,
+                style: context.gdText.bodySm.copyWith(color: context.gd.ink),
+              ),
+            ),
+            const SizedBox(height: 12),
+            GdCard(
+              child: Text(
+                s.privacyPolicy,
+                style: context.gdText.bodySm.copyWith(color: context.gd.ink),
+              ),
+            ),
+          ],
+        ),
       ),
-      bottomNavigationBar: settings.hasValue && settings.value!.termsVersion != null
-          ? GdBottomBar(child: GdButton(label: _acceptLabel.of(context), loading: _busy, onPressed: () => _accept(settings.value!.termsVersion!), semanticsId: 'consent.accept'))
+      bottomNavigationBar:
+          settings.hasValue && settings.value!.termsVersion != null
+          ? GdBottomBar(
+              child: GdButton(
+                label: _acceptLabel.of(context),
+                loading: _busy,
+                onPressed: () => _accept(settings.value!.termsVersion!),
+                semanticsId: 'consent.accept',
+              ),
+            )
           : null,
     );
   }
 }
 
 /// Opens the consent screen; true when the customer accepted.
-Future<bool> askConsent(BuildContext context) async => await context.push<bool>('/consent') ?? false;
+Future<bool> askConsent(BuildContext context) async =>
+    await context.push<bool>('/consent') ?? false;

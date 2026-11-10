@@ -19,7 +19,8 @@ class CartController extends AsyncNotifier<Cart> {
     return _fetch();
   }
 
-  Future<Cart> _fetch() async => Cart.fromJson(asJson(await ref.read(apiClientProvider).get('cart/')));
+  Future<Cart> _fetch() async =>
+      Cart.fromJson(asJson(await ref.read(apiClientProvider).get('cart/')));
 
   Future<void> reload() async {
     if (!ref.read(sessionProvider).signedIn) return;
@@ -39,11 +40,17 @@ class CartController extends AsyncNotifier<Cart> {
     final keys = ref.read(idempotencyProvider);
     final intent = 'cart.add.$productId';
     try {
-      final cart = Cart.fromJson(asJson(await ref.read(apiClientProvider).post(
-            'cart/items/',
-            body: {'product_id': productId, 'quantity': quantity},
-            idempotencyKey: keys.keyFor(intent),
-          )));
+      final cart = Cart.fromJson(
+        asJson(
+          await ref
+              .read(apiClientProvider)
+              .post(
+                'cart/items/',
+                body: {'product_id': productId, 'quantity': quantity},
+                idempotencyKey: keys.keyFor(intent),
+              ),
+        ),
+      );
       keys.done(intent);
       state = AsyncData(cart);
       return cart;
@@ -61,7 +68,10 @@ class CartController extends AsyncNotifier<Cart> {
       final api = ref.read(apiClientProvider);
       final json = quantity <= 0
           ? await api.delete('cart/items/$productId/')
-          : await api.patch('cart/items/$productId/', body: {'quantity': quantity});
+          : await api.patch(
+              'cart/items/$productId/',
+              body: {'quantity': quantity},
+            );
       final cart = Cart.fromJson(asJson(json));
       state = AsyncData(cart);
       return cart;
@@ -81,7 +91,12 @@ class CartController extends AsyncNotifier<Cart> {
     }
     state = AsyncData(preview);
     try {
-      final json = await ref.read(apiClientProvider).delete('cart/items/', query: {'product_id': ids.map((e) => '$e').toList()});
+      final json = await ref
+          .read(apiClientProvider)
+          .delete(
+            'cart/items/',
+            query: {'product_id': ids.map((e) => '$e').toList()},
+          );
       state = AsyncData(Cart.fromJson(asJson(json)));
     } on Object {
       state = AsyncData(before);
@@ -93,7 +108,11 @@ class CartController extends AsyncNotifier<Cart> {
   void replace(Cart cart) => state = AsyncData(cart);
 }
 
-final cartProvider = AsyncNotifierProvider<CartController, Cart>(CartController.new);
+final cartProvider = AsyncNotifierProvider<CartController, Cart>(
+  CartController.new,
+);
 
 /// Tab badge: number of lines.
-final cartBadgeProvider = Provider<int>((ref) => ref.watch(cartProvider).value?.itemCount ?? 0);
+final cartBadgeProvider = Provider<int>(
+  (ref) => ref.watch(cartProvider).value?.itemCount ?? 0,
+);

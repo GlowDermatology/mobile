@@ -18,7 +18,11 @@ class ApiException implements Exception {
 
   /// Builds the exception from the error envelope
   /// `{code, message, errors[{field, code, message}], details, request_id}`.
-  factory ApiException.fromEnvelope(int status, Object? body, {int? retryAfter}) {
+  factory ApiException.fromEnvelope(
+    int status,
+    Object? body, {
+    int? retryAfter,
+  }) {
     final json = asJson(body);
     final fields = <String, String>{};
     final fieldCodes = <String, String>{};
@@ -41,7 +45,11 @@ class ApiException implements Exception {
   }
 
   /// No answer (offline, timeout, DNS…).
-  static const network = ApiException(status: 0, code: 'network_error', message: '');
+  static const network = ApiException(
+    status: 0,
+    code: 'network_error',
+    message: '',
+  );
 
   final int status;
   final String code;
@@ -58,7 +66,9 @@ class ApiException implements Exception {
   bool get isConflict => status == 409;
 
   /// The first field error, or the top-level message.
-  String get displayMessage => message.isNotEmpty ? message : (fieldErrors.values.isEmpty ? '' : fieldErrors.values.first);
+  String get displayMessage => message.isNotEmpty
+      ? message
+      : (fieldErrors.values.isEmpty ? '' : fieldErrors.values.first);
 
   @override
   String toString() => 'ApiException($status $code)';

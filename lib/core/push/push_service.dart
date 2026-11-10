@@ -20,7 +20,9 @@ bool get pushSupported => AppConfig.firebaseEnabled && !kIsWeb;
 Future<void> initPush() async {
   if (!pushSupported) return;
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } on Object catch (e) {
     debugPrint('Firebase init failed: $e');
   }
@@ -36,7 +38,9 @@ String locationForPush(Map<String, dynamic> data) {
       return order == null ? '/orders' : '/orders/$order';
     case 'appointment':
       final appointment = id('appointment_id');
-      return appointment == null ? '/appointments' : '/appointments/$appointment';
+      return appointment == null
+          ? '/appointments'
+          : '/appointments/$appointment';
     case 'campaign':
       final product = id('product_id');
       return product == null ? '/notifications' : '/product/$product';
@@ -47,18 +51,26 @@ String locationForPush(Map<String, dynamic> data) {
 
 /// Android notification channels of the backend (`android.notification.channel_id`).
 const _channels = [
-  AndroidNotificationChannel('orders', 'Buyurtmalar', importance: Importance.high),
-  AndroidNotificationChannel('appointments', 'Qabullar', importance: Importance.high),
+  AndroidNotificationChannel(
+    'orders',
+    'Buyurtmalar',
+    importance: Importance.high,
+  ),
+  AndroidNotificationChannel(
+    'appointments',
+    'Qabullar',
+    importance: Importance.high,
+  ),
   AndroidNotificationChannel('promo', 'Aksiyalar'),
   AndroidNotificationChannel('general', 'Umumiy', importance: Importance.high),
 ];
 
 String _channelFor(String? type) => switch (type) {
-      'order_status' => 'orders',
-      'appointment' => 'appointments',
-      'campaign' => 'promo',
-      _ => 'general',
-    };
+  'order_status' => 'orders',
+  'appointment' => 'appointments',
+  'campaign' => 'promo',
+  _ => 'general',
+};
 
 /// Push notifications: permission, FCM token registration (`PUT me/device/`),
 /// foreground display, tap routing and delivery acknowledgements
@@ -77,14 +89,27 @@ class PushService {
       await _local.initialize(
         settings: const InitializationSettings(
           android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-          iOS: DarwinInitializationSettings(requestAlertPermission: false, requestBadgePermission: false, requestSoundPermission: false),
+          iOS: DarwinInitializationSettings(
+            requestAlertPermission: false,
+            requestBadgePermission: false,
+            requestSoundPermission: false,
+          ),
         ),
         onDidReceiveNotificationResponse: (response) {
           final payload = response.payload;
-          if (payload != null) _open?.call(locationForPush((jsonDecode(payload) as Map).cast<String, dynamic>()));
+          if (payload != null) {
+            _open?.call(
+              locationForPush(
+                (jsonDecode(payload) as Map).cast<String, dynamic>(),
+              ),
+            );
+          }
         },
       );
-      final android = _local.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      final android = _local
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       for (final channel in _channels) {
         await android?.createNotificationChannel(channel);
       }
@@ -96,7 +121,9 @@ class PushService {
       // The backend's FCM HTTP v1 sender targets registration tokens, so the
       // classic token API is used (its replacement returns installation ids).
       // ignore: deprecated_member_use
-      FirebaseMessaging.instance.onTokenRefresh.listen((token) => _register(token));
+      FirebaseMessaging.instance.onTokenRefresh.listen(
+        (token) => _register(token),
+      );
       final initial = await FirebaseMessaging.instance.getInitialMessage();
       if (initial != null) {
         _queueAck(initial.data);
@@ -116,10 +143,13 @@ class PushService {
     }
     try {
       final settings = await FirebaseMessaging.instance.requestPermission();
-      final granted = settings.authorizationStatus == AuthorizationStatus.authorized ||
+      final granted =
+          settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional;
-      // ignore: deprecated_member_use
-      final token = granted ? await FirebaseMessaging.instance.getToken() : null;
+      final token = granted
+          // ignore: deprecated_member_use
+          ? await FirebaseMessaging.instance.getToken()
+          : null;
       await _register(token);
       await flushAcks();
     } on Object catch (e) {
@@ -127,8 +157,9 @@ class PushService {
     }
   }
 
-  Future<void> _register(String? token) =>
-      _ref.read(sessionProvider.notifier).registerDevice(fcmToken: token, pushEnabled: token != null);
+  Future<void> _register(String? token) => _ref
+      .read(sessionProvider.notifier)
+      .registerDevice(fcmToken: token, pushEnabled: token != null);
 
   Future<void> _onForeground(RemoteMessage message) async {
     _queueAck(message.data);
@@ -141,7 +172,10 @@ class PushService {
       body: n.body,
       payload: jsonEncode(message.data),
       notificationDetails: NotificationDetails(
-        android: AndroidNotificationDetails(_channelFor(message.data['type'] as String?), _channelFor(message.data['type'] as String?)),
+        android: AndroidNotificationDetails(
+          _channelFor(message.data['type'] as String?),
+          _channelFor(message.data['type'] as String?),
+        ),
         iOS: const DarwinNotificationDetails(),
       ),
     );
@@ -165,7 +199,9 @@ class PushService {
     try {
       for (var i = 0; i < ids.length; i += 50) {
         final batch = ids.skip(i).take(50).map(int.parse).toList();
-        await _ref.read(apiClientProvider).post('me/notifications/ack/', body: {'inbox_ids': batch});
+        await _ref
+            .read(apiClientProvider)
+            .post('me/notifications/ack/', body: {'inbox_ids': batch});
       }
       await prefs.remove(_ackKey);
     } on Object {

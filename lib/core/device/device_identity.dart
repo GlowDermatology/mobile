@@ -8,7 +8,13 @@ import '../storage/secure_store.dart';
 
 /// What the API needs to know about this install (contract §1.2).
 class DeviceIdentity {
-  DeviceIdentity({required this.id, required this.platform, required this.appVersion, required this.model, required this.os});
+  DeviceIdentity({
+    required this.id,
+    required this.platform,
+    required this.appVersion,
+    required this.model,
+    required this.os,
+  });
 
   /// `X-GD-Device-Id`: generated once per install, kept in secure storage.
   /// The API binds every session to it; it is an identifier, not a secret.
@@ -35,7 +41,8 @@ class DeviceIdentity {
     var version = '1.0.0';
     try {
       final info = await PackageInfo.fromPlatform();
-      final match = RegExp(r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})').firstMatch(info.version);
+      final match = RegExp(r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})')
+          .firstMatch(info.version);
       if (match != null) version = match.group(0)!;
     } on Object {
       // keep the default
@@ -60,6 +67,12 @@ class DeviceIdentity {
       // device facts are informational only
     }
     String cap(String s, int n) => s.length > n ? s.substring(0, n) : s;
-    return DeviceIdentity(id: id, platform: platform, appVersion: version, model: cap(model, 80), os: cap(os, 40));
+    return DeviceIdentity(
+      id: id,
+      platform: platform,
+      appVersion: version,
+      model: cap(model, 80),
+      os: cap(os, 40),
+    );
   }
 }

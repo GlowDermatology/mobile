@@ -32,5 +32,7 @@ class CashbackSummary {
 /// Null for guests.
 final cashbackSummaryProvider = FutureProvider<CashbackSummary?>((ref) async {
   if (!ref.watch(sessionProvider.select((s) => s.signedIn))) return null;
-  return CashbackSummary(asJson(await ref.watch(apiClientProvider).get('me/cashback/')));
+  return CashbackSummary(
+    asJson(await ref.watch(apiClientProvider).get('me/cashback/')),
+  );
 });

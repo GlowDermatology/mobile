@@ -50,7 +50,11 @@ class Me {
 
   /// "MK" for "Malika Karimova".
   String get initials {
-    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
     if (parts.isEmpty) return 'GD';
     return parts.take(2).map((p) => p.substring(0, 1).toUpperCase()).join();
   }
@@ -58,13 +62,18 @@ class Me {
 
 /// `CodeIssue` (§2.1.1): a code was sent.
 class CodeIssue {
-  const CodeIssue({required this.phoneMask, required this.expiresIn, required this.resendIn, required this.length});
+  const CodeIssue({
+    required this.phoneMask,
+    required this.expiresIn,
+    required this.resendIn,
+    required this.length,
+  });
   factory CodeIssue.fromJson(Json j) => CodeIssue(
-        phoneMask: asString(j['phone_mask']),
-        expiresIn: asInt(j['expires_in'], 120),
-        resendIn: asInt(j['resend_in'], 60),
-        length: asInt(j['length'], 6),
-      );
+    phoneMask: asString(j['phone_mask']),
+    expiresIn: asInt(j['expires_in'], 120),
+    resendIn: asInt(j['resend_in'], 60),
+    length: asInt(j['length'], 6),
+  );
   final String phoneMask;
   final int expiresIn;
   final int resendIn;

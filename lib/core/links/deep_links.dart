@@ -6,7 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Hosts whose `/pay/return` links open the app (Android App Links / iOS
 /// universal links, served by the website's `.well-known` files).
-const appLinkHosts = {'glowderma.uz', 'www.glowderma.uz', 'staging.glowderma.uz'};
+const appLinkHosts = {
+  'glowderma.uz',
+  'www.glowderma.uz',
+  'staging.glowderma.uz',
+};
 
 /// Maps an incoming link to an app location, or null to ignore it.
 ///
@@ -16,8 +20,14 @@ const appLinkHosts = {'glowderma.uz', 'www.glowderma.uz', 'staging.glowderma.uz'
 /// Only the order id is taken from the link; the order itself is always
 /// re-read from the API, so a forged link can do nothing but open a screen.
 String? locationForLink(Uri uri) {
-  final isHttps = uri.scheme == 'https' && appLinkHosts.contains(uri.host) && uri.path.startsWith('/pay/return');
-  final isScheme = uri.scheme == 'glowderma' && uri.host == 'payment' && uri.path.startsWith('/return');
+  final isHttps =
+      uri.scheme == 'https' &&
+      appLinkHosts.contains(uri.host) &&
+      uri.path.startsWith('/pay/return');
+  final isScheme =
+      uri.scheme == 'glowderma' &&
+      uri.host == 'payment' &&
+      uri.path.startsWith('/return');
   if (!isHttps && !isScheme) return null;
   final id = uri.queryParameters['order_id'];
   if (id == null || !RegExp(r'^\d{1,12}$').hasMatch(id)) return '/orders';
@@ -36,7 +46,10 @@ class DeepLinks {
     if (kIsWeb || _sub != null) return;
     _sub = AppLinks().uriLinkStream.listen((uri) {
       final now = DateTime.now();
-      if (uri == _last && now.difference(_lastAt) < const Duration(seconds: 2)) return;
+      if (uri == _last &&
+          now.difference(_lastAt) < const Duration(seconds: 2)) {
+        return;
+      }
       _last = uri;
       _lastAt = now;
       final location = locationForLink(uri);

@@ -25,7 +25,8 @@ class GlowDermaApp extends ConsumerStatefulWidget {
   ConsumerState<GlowDermaApp> createState() => _GlowDermaAppState();
 }
 
-class _GlowDermaAppState extends ConsumerState<GlowDermaApp> with WidgetsBindingObserver {
+class _GlowDermaAppState extends ConsumerState<GlowDermaApp>
+    with WidgetsBindingObserver {
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
 
   @override
@@ -35,7 +36,11 @@ class _GlowDermaAppState extends ConsumerState<GlowDermaApp> with WidgetsBinding
     final router = ref.read(routerProvider);
     // Payment returns and other app links; push taps.
     ref.read(deepLinksProvider).start((location) => router.go(location));
-    unawaited(ref.read(pushServiceProvider).start(onOpen: (location) => router.push(location)));
+    unawaited(
+      ref
+          .read(pushServiceProvider)
+          .start(onOpen: (location) => router.push(location)),
+    );
   }
 
   @override
@@ -46,7 +51,8 @@ class _GlowDermaAppState extends ConsumerState<GlowDermaApp> with WidgetsBinding
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && ref.read(sessionProvider).signedIn) {
+    if (state == AppLifecycleState.resumed &&
+        ref.read(sessionProvider).signedIn) {
       unawaited(ref.read(unreadCountProvider.notifier).refresh());
       unawaited(ref.read(cartProvider.notifier).reload());
     }
@@ -62,7 +68,9 @@ class _GlowDermaAppState extends ConsumerState<GlowDermaApp> with WidgetsBinding
     ref.listen(sessionProvider, (previous, next) {
       final notice = next.notice;
       if (notice != null) {
-        _messengerKey.currentState?.showSnackBar(SnackBar(content: Text(notice)));
+        _messengerKey.currentState?.showSnackBar(
+          SnackBar(content: Text(notice)),
+        );
         ref.read(sessionProvider.notifier).clearNotice();
       }
       if (previous?.signedIn != true && next.signedIn) {
@@ -86,7 +94,9 @@ class _GlowDermaAppState extends ConsumerState<GlowDermaApp> with WidgetsBinding
         GlobalCupertinoLocalizations.delegate,
       ],
       routerConfig: router,
-      builder: (context, child) => updateRequired != null ? UpdateRequiredScreen(error: updateRequired) : child!,
+      builder: (context, child) => updateRequired != null
+          ? UpdateRequiredScreen(error: updateRequired)
+          : child!,
     );
   }
 

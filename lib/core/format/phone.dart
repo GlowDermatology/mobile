@@ -7,7 +7,10 @@ String nationalDigits(String input) {
   var digits = trimmed.replaceAll(RegExp(r'\D'), '');
   // "+998 90 1…" always carries the country code; without "+" a leading 998
   // is the country code only when more than nine digits were given.
-  if (digits.startsWith('998') && (trimmed.startsWith('+') || digits.length > 9)) digits = digits.substring(3);
+  if (digits.startsWith('998') &&
+      (trimmed.startsWith('+') || digits.length > 9)) {
+    digits = digits.substring(3);
+  }
   return digits.length > 9 ? digits.substring(0, 9) : digits;
 }
 

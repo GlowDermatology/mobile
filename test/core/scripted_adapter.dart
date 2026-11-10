@@ -12,17 +12,25 @@ class ScriptedAdapter implements HttpClientAdapter {
   final FutureOr<ResponseBody> Function(RequestOptions options) handler;
   final requests = <RequestOptions>[];
 
-  static ResponseBody json(int status, Object body, {Map<String, List<String>> headers = const {}}) => ResponseBody.fromString(
-        jsonEncode(body),
-        status,
-        headers: {
-          'content-type': ['application/json'],
-          ...headers,
-        },
-      );
+  static ResponseBody json(
+    int status,
+    Object body, {
+    Map<String, List<String>> headers = const {},
+  }) => ResponseBody.fromString(
+    jsonEncode(body),
+    status,
+    headers: {
+      'content-type': ['application/json'],
+      ...headers,
+    },
+  );
 
   @override
-  Future<ResponseBody> fetch(RequestOptions options, Stream<Uint8List>? requestStream, Future<void>? cancelFuture) async {
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
     requests.add(options);
     return handler(options);
   }

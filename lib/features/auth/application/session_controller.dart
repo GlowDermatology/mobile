@@ -22,7 +22,8 @@ class AuthState {
   /// A message to show once (e.g. the server's `password_changed` text).
   final String? notice;
 
-  AuthState copyWith({Me? me, String? notice}) => AuthState(signedIn: signedIn, me: me ?? this.me, notice: notice);
+  AuthState copyWith({Me? me, String? notice}) =>
+      AuthState(signedIn: signedIn, me: me ?? this.me, notice: notice);
 }
 
 /// Owns the signed-in state; everything else reacts to it.
@@ -32,7 +33,10 @@ class SessionController extends Notifier<AuthState> {
     ref.listen(sessionEventsProvider, (_, end) {
       if (end == null) return;
       ref.read(sessionEventsProvider.notifier).consumed();
-      state = AuthState(signedIn: false, notice: end.message.isEmpty ? null : end.message);
+      state = AuthState(
+        signedIn: false,
+        notice: end.message.isEmpty ? null : end.message,
+      );
     });
     final signedIn = ref.read(tokenStoreProvider).hasSession;
     if (signedIn) Future.microtask(refreshMe);
@@ -53,7 +57,9 @@ class SessionController extends Notifier<AuthState> {
     final current = ref.read(languageProvider);
     if (me.language != current.code) {
       try {
-        state = state.copyWith(me: await ref.read(authApiProvider).updateMe(language: current));
+        state = state.copyWith(
+          me: await ref.read(authApiProvider).updateMe(language: current),
+        );
       } on Object {
         // not important enough to bother the user
       }
@@ -63,11 +69,16 @@ class SessionController extends Notifier<AuthState> {
   }
 
   /// `PUT me/device/` — on every cold start and after every sign-in.
-  Future<void> registerDevice({String? fcmToken, bool pushEnabled = false}) async {
+  Future<void> registerDevice({
+    String? fcmToken,
+    bool pushEnabled = false,
+  }) async {
     if (!state.signedIn) return;
     final device = ref.read(deviceProvider);
     try {
-      await ref.read(authApiProvider).registerDevice(
+      await ref
+          .read(authApiProvider)
+          .registerDevice(
             fcmToken: fcmToken,
             pushEnabled: pushEnabled && fcmToken != null,
             model: device.model,
@@ -119,7 +130,10 @@ class SessionController extends Notifier<AuthState> {
     state = const AuthState(signedIn: false);
   }
 
-  void clearNotice() => state = AuthState(signedIn: state.signedIn, me: state.me);
+  void clearNotice() =>
+      state = AuthState(signedIn: state.signedIn, me: state.me);
 }
 
-final sessionProvider = NotifierProvider<SessionController, AuthState>(SessionController.new);
+final sessionProvider = NotifierProvider<SessionController, AuthState>(
+  SessionController.new,
+);

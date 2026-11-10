@@ -24,7 +24,13 @@ import 'language_sheet.dart';
 
 /// Arguments passed between the sign-in steps.
 class OtpArgs {
-  const OtpArgs({required this.phone, required this.purpose, required this.issue, this.password, this.next});
+  const OtpArgs({
+    required this.phone,
+    required this.purpose,
+    required this.issue,
+    this.password,
+    this.next,
+  });
   final String phone;
   final OtpPurpose purpose;
   final CodeIssue issue;
@@ -41,7 +47,11 @@ class PasswordArgs {
 }
 
 class RegisterArgs {
-  const RegisterArgs({required this.phone, required this.verificationToken, this.next});
+  const RegisterArgs({
+    required this.phone,
+    required this.verificationToken,
+    this.next,
+  });
   final String phone;
   final String verificationToken;
   final String? next;
@@ -49,7 +59,9 @@ class RegisterArgs {
 
 /// Location of an auth step, keeping `next` so the router can return there
 /// once the session starts.
-String authRoute(String path, String? next) => next == null ? path : Uri(path: path, queryParameters: {'next': next}).toString();
+String authRoute(String path, String? next) => next == null
+    ? path
+    : Uri(path: path, queryParameters: {'next': next}).toString();
 
 /// Design 1 — "Xush kelibsiz": phone number and consent.
 class AuthPhoneScreen extends ConsumerStatefulWidget {
@@ -74,20 +86,41 @@ class _AuthPhoneScreenState extends ConsumerState<AuthPhoneScreen> {
 
   Future<void> _submit() async {
     final phone = toE164(_phone.text);
-    if (phone == null) return setState(() => _error = AuthText.phoneInvalid.of(context));
-    if (!_agreed) return showSnack(context, AuthText.consentRequired.of(context));
+    if (phone == null) {
+      return setState(() => _error = AuthText.phoneInvalid.of(context));
+    }
+    if (!_agreed) {
+      return showSnack(context, AuthText.consentRequired.of(context));
+    }
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      final issue = await ref.read(authApiProvider).sendCode(phone, OtpPurpose.register);
+      final issue = await ref
+          .read(authApiProvider)
+          .sendCode(phone, OtpPurpose.register);
       if (!mounted) return;
-      unawaited(context.push(authRoute('/auth/otp', widget.next), extra: OtpArgs(phone: phone, purpose: OtpPurpose.register, issue: issue, next: widget.next)));
+      unawaited(
+        context.push(
+          authRoute('/auth/otp', widget.next),
+          extra: OtpArgs(
+            phone: phone,
+            purpose: OtpPurpose.register,
+            issue: issue,
+            next: widget.next,
+          ),
+        ),
+      );
     } on ApiException catch (e) {
       if (!mounted) return;
       if (e.code == 'phone_registered') {
-        unawaited(context.push(authRoute('/auth/password', widget.next), extra: PasswordArgs(phone: phone, next: widget.next)));
+        unawaited(
+          context.push(
+            authRoute('/auth/password', widget.next),
+            extra: PasswordArgs(phone: phone, next: widget.next),
+          ),
+        );
       } else if (e.fieldErrors.containsKey('phone')) {
         setState(() => _error = e.fieldErrors['phone']);
       } else {
@@ -103,66 +136,115 @@ class _AuthPhoneScreenState extends ConsumerState<AuthPhoneScreen> {
     final c = context.gd;
     final t = context.gdText;
     final language = ref.watch(languageProvider);
-    final linkStyle = t.bodySm.copyWith(color: c.ink, fontWeight: FontWeight.w700, decoration: TextDecoration.underline);
+    final linkStyle = t.bodySm.copyWith(
+      color: c.ink,
+      fontWeight: FontWeight.w700,
+      decoration: TextDecoration.underline,
+    );
     return Scaffold(
-      body: Column(children: [
-        _WelcomeHero(
-          language: language,
-          onLanguage: () => showLanguageSheet(context, ref),
-          onClose: context.canPop() ? () => context.pop() : null,
-        ),
-        Expanded(
-          child: SafeArea(
-            top: false,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+      body: Column(
+        children: [
+          _WelcomeHero(
+            language: language,
+            onLanguage: () => showLanguageSheet(context, ref),
+            onClose: context.canPop() ? () => context.pop() : null,
+          ),
+          Expanded(
+            child: SafeArea(
+              top: false,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                children: [
+                  AuthHeading(
+                    title: AuthText.welcome.of(context),
+                    body: Text(
+                      AuthText.welcomeBody.of(context),
+                      style: t.bodyMd.copyWith(color: c.inkMuted),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Text(AuthText.phone.of(context), style: t.label),
+                  const SizedBox(height: 8),
+                  GdPhoneField(
+                    controller: _phone,
+                    errorText: _error,
+                    onSubmitted: (_) => _submit(),
+                  ),
+                  const SizedBox(height: 22),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: Semantics(
+                          identifier: 'auth.consent',
+                          child: Checkbox(
+                            value: _agreed,
+                            onChanged: (v) =>
+                                setState(() => _agreed = v ?? false),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text.rich(
+                          TextSpan(
+                            style: t.bodySm,
+                            children: [
+                              TextSpan(text: AuthText.agreePrefix.of(context)),
+                              TextSpan(
+                                text: AuthText.privacy.of(context),
+                                style: linkStyle,
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () =>
+                                      context.push('/settings/legal/privacy'),
+                              ),
+                              TextSpan(text: AuthText.and.of(context)),
+                              TextSpan(
+                                text: AuthText.terms.of(context),
+                                style: linkStyle,
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () =>
+                                      context.push('/settings/legal/terms'),
+                              ),
+                              TextSpan(text: AuthText.agreeSuffix.of(context)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          GdBottomBar(
+            child: Column(
               children: [
-                AuthHeading(title: AuthText.welcome.of(context), body: Text(AuthText.welcomeBody.of(context), style: t.bodyMd.copyWith(color: c.inkMuted))),
-                const SizedBox(height: 28),
-                Text(AuthText.phone.of(context), style: t.label),
-                const SizedBox(height: 8),
-                GdPhoneField(controller: _phone, errorText: _error, onSubmitted: (_) => _submit()),
-                const SizedBox(height: 22),
-                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: Semantics(
-                      identifier: 'auth.consent',
-                      child: Checkbox(value: _agreed, onChanged: (v) => setState(() => _agreed = v ?? false)),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text.rich(
-                      TextSpan(style: t.bodySm, children: [
-                        TextSpan(text: AuthText.agreePrefix.of(context)),
-                        TextSpan(text: AuthText.privacy.of(context), style: linkStyle, recognizer: TapGestureRecognizer()..onTap = () => context.push('/settings/legal/privacy')),
-                        TextSpan(text: AuthText.and.of(context)),
-                        TextSpan(text: AuthText.terms.of(context), style: linkStyle, recognizer: TapGestureRecognizer()..onTap = () => context.push('/settings/legal/terms')),
-                        TextSpan(text: AuthText.agreeSuffix.of(context)),
-                      ]),
-                    ),
-                  ),
-                ]),
+                GdButton(
+                  label: AuthText.getCode.of(context),
+                  loading: _busy,
+                  onPressed: _submit,
+                  semanticsId: 'auth.getCode',
+                ),
+                const SizedBox(height: 10),
+                Text(AuthText.codeValid.of(context), style: t.caption),
               ],
             ),
           ),
-        ),
-        GdBottomBar(
-          child: Column(children: [
-            GdButton(label: AuthText.getCode.of(context), loading: _busy, onPressed: _submit, semanticsId: 'auth.getCode'),
-            const SizedBox(height: 10),
-            Text(AuthText.codeValid.of(context), style: t.caption),
-          ]),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }
 
 class _WelcomeHero extends StatelessWidget {
-  const _WelcomeHero({required this.language, required this.onLanguage, this.onClose});
+  const _WelcomeHero({
+    required this.language,
+    required this.onLanguage,
+    this.onClose,
+  });
   final AppLanguage language;
   final VoidCallback onLanguage;
   final VoidCallback? onClose;
@@ -171,66 +253,94 @@ class _WelcomeHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.gd;
     return ClipRRect(
-      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(GdRadius.lg)),
+      borderRadius: const BorderRadius.vertical(
+        bottom: Radius.circular(GdRadius.lg),
+      ),
       child: Container(
         color: c.banner,
         height: 300 + MediaQuery.paddingOf(context).top,
-        child: Stack(children: [
-          Positioned(
-            left: 0,
-            right: 0,
-            top: MediaQuery.paddingOf(context).top - 40,
-            bottom: -140,
-            child: GdRings(color: c.gold.withValues(alpha: 0.75), count: 4, strokeWidth: 1.2),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 34,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: const [
-                ProductArt(kind: ProductArtKind.dropper, size: 62),
-                SizedBox(width: 22),
-                ProductArt(kind: ProductArtKind.pump, size: 96),
-                SizedBox(width: 22),
-                ProductArt(kind: ProductArtKind.jar, size: 66),
-              ],
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              top: MediaQuery.paddingOf(context).top - 40,
+              bottom: -140,
+              child: GdRings(
+                color: c.gold.withValues(alpha: 0.75),
+                count: 4,
+                strokeWidth: 1.2,
+              ),
             ),
-          ),
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 16, 0),
-              child: Row(children: [
-                if (onClose != null)
-                  IconButton(onPressed: onClose, icon: Icon(Icons.close, color: c.bannerInkSoft), tooltip: Strings.close.of(context)),
-                GdWordmark(color: c.bannerInk, size: 30),
-                const Spacer(),
-                Semantics(
-                  identifier: 'auth.language',
-                  button: true,
-                  child: OutlinedButton(
-                    onPressed: onLanguage,
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 44),
-                      foregroundColor: c.bannerInkSoft,
-                      side: BorderSide(color: c.bannerInkSoft.withValues(alpha: 0.4)),
-                      shape: const StadiumBorder(),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 34,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: const [
+                  ProductArt(kind: ProductArtKind.dropper, size: 62),
+                  SizedBox(width: 22),
+                  ProductArt(kind: ProductArtKind.pump, size: 96),
+                  SizedBox(width: 22),
+                  ProductArt(kind: ProductArtKind.jar, size: 66),
+                ],
+              ),
+            ),
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 16, 0),
+                child: Row(
+                  children: [
+                    if (onClose != null)
+                      IconButton(
+                        onPressed: onClose,
+                        icon: Icon(Icons.close, color: c.bannerInkSoft),
+                        tooltip: Strings.close.of(context),
+                      ),
+                    GdWordmark(color: c.bannerInk, size: 30),
+                    const Spacer(),
+                    Semantics(
+                      identifier: 'auth.language',
+                      button: true,
+                      child: OutlinedButton(
+                        onPressed: onLanguage,
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 44),
+                          foregroundColor: c.bannerInkSoft,
+                          side: BorderSide(
+                            color: c.bannerInkSoft.withValues(alpha: 0.4),
+                          ),
+                          shape: const StadiumBorder(),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              language.label,
+                              style: context.gdText.label.copyWith(
+                                color: c.bannerInkSoft,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Icon(
+                              Icons.keyboard_arrow_down,
+                              size: 20,
+                              color: c.bannerInkSoft,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Text(language.label, style: context.gdText.label.copyWith(color: c.bannerInkSoft)),
-                      const SizedBox(width: 6),
-                      Icon(Icons.keyboard_arrow_down, size: 20, color: c.bannerInkSoft),
-                    ]),
-                  ),
+                  ],
                 ),
-              ]),
+              ),
             ),
-          ),
-        ]),
+          ],
+        ),
       ),
     );
   }
@@ -324,12 +434,32 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       if (!mounted) return;
       switch (args.purpose) {
         case OtpPurpose.register:
-          context.pushReplacement(authRoute('/auth/register', args.next), extra: RegisterArgs(phone: args.phone, verificationToken: token, next: args.next));
+          context.pushReplacement(
+            authRoute('/auth/register', args.next),
+            extra: RegisterArgs(
+              phone: args.phone,
+              verificationToken: token,
+              next: args.next,
+            ),
+          );
         case OtpPurpose.resetPassword:
-          context.pushReplacement(authRoute('/auth/reset', args.next), extra: RegisterArgs(phone: args.phone, verificationToken: token, next: args.next));
+          context.pushReplacement(
+            authRoute('/auth/reset', args.next),
+            extra: RegisterArgs(
+              phone: args.phone,
+              verificationToken: token,
+              next: args.next,
+            ),
+          );
         case OtpPurpose.loginNewDevice:
-          final result = await auth.login(args.phone, args.password ?? '', verificationToken: token);
-          if (result is LoginSignedIn) await ref.read(sessionProvider.notifier).signedIn(result.tokens);
+          final result = await auth.login(
+            args.phone,
+            args.password ?? '',
+            verificationToken: token,
+          );
+          if (result is LoginSignedIn) {
+            await ref.read(sessionProvider.notifier).signedIn(result.tokens);
+          }
       }
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -337,7 +467,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         _error = true;
         _message = e.fieldErrors['code'] ?? e.displayMessage;
       });
-      if (e.code == 'otp_locked' && e.retryAfter != null) _startTimer(e.retryAfter!);
+      if (e.code == 'otp_locked' && e.retryAfter != null) {
+        _startTimer(e.retryAfter!);
+      }
       if (e.code == 'verification_invalid' || e.code == 'invalid_credentials') {
         showSnack(context, AuthText.restart.of(context));
         context.go(authRoute('/auth', args.next));
@@ -355,17 +487,32 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     final t = context.gdText;
     final complete = _code.length == _issue.length;
     return Scaffold(
-      appBar: AppBar(leading: IconButton(icon: const Icon(Icons.chevron_left, size: 30), onPressed: () => context.pop())),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left, size: 30),
+          onPressed: () => context.pop(),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
         children: [
           AuthHeading(
             overline: AuthText.step.fmt(context, {'n': 2}),
             title: AuthText.enterCode.of(context),
-            body: Text.rich(TextSpan(style: t.bodyMd.copyWith(color: c.inkMuted), children: [
-              TextSpan(text: '${formatPhone(args.phone)} ', style: t.bodyMd.copyWith(fontWeight: FontWeight.w700)),
-              TextSpan(text: AuthText.codeSent.fmt(context, {'n': _issue.length})),
-            ])),
+            body: Text.rich(
+              TextSpan(
+                style: t.bodyMd.copyWith(color: c.inkMuted),
+                children: [
+                  TextSpan(
+                    text: '${formatPhone(args.phone)} ',
+                    style: t.bodyMd.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  TextSpan(
+                    text: AuthText.codeSent.fmt(context, {'n': _issue.length}),
+                  ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 10),
           Align(
@@ -374,7 +521,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
               onTap: () => context.go(authRoute('/auth', args.next)),
               child: Container(
                 padding: const EdgeInsets.only(bottom: 2),
-                decoration: BoxDecoration(border: Border(bottom: BorderSide(color: c.gold, width: 1.5))),
+                decoration: BoxDecoration(
+                  border: Border(bottom: BorderSide(color: c.gold, width: 1.5)),
+                ),
                 child: Text(AuthText.changeNumber.of(context), style: t.label),
               ),
             ),
@@ -392,26 +541,44 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             }),
             onCompleted: (_) => _submit(),
           ),
-          if (_message != null) ...[const SizedBox(height: 10), Text(_message!, style: t.bodySm.copyWith(color: c.danger))],
+          if (_message != null) ...[
+            const SizedBox(height: 10),
+            Text(_message!, style: t.bodySm.copyWith(color: c.danger)),
+          ],
           const SizedBox(height: 22),
-          Row(children: [
-            Icon(Icons.schedule, size: 20, color: c.inkMuted),
-            const SizedBox(width: 8),
-            if (_resendLeft > 0) ...[
-              Text(AuthText.resendIn.of(context), style: t.bodySm),
-              const SizedBox(width: 6),
-              Text('${_resendLeft ~/ 60}:${(_resendLeft % 60).toString().padLeft(2, '0')}', style: t.label),
-            ] else
-              TextButton(onPressed: _busy ? null : _resend, child: Text(AuthText.resend.of(context))),
-          ]),
+          Row(
+            children: [
+              Icon(Icons.schedule, size: 20, color: c.inkMuted),
+              const SizedBox(width: 8),
+              if (_resendLeft > 0) ...[
+                Text(AuthText.resendIn.of(context), style: t.bodySm),
+                const SizedBox(width: 6),
+                Text(
+                  '${_resendLeft ~/ 60}:${(_resendLeft % 60).toString().padLeft(2, '0')}',
+                  style: t.label,
+                ),
+              ] else
+                TextButton(
+                  onPressed: _busy ? null : _resend,
+                  child: Text(AuthText.resend.of(context)),
+                ),
+            ],
+          ),
         ],
       ),
       bottomNavigationBar: GdBottomBar(
-        child: Column(children: [
-          GdButton(label: AuthText.confirm.of(context), loading: _busy, onPressed: complete ? _submit : null, semanticsId: 'auth.confirm'),
-          const SizedBox(height: 10),
-          Text(AuthText.nextStepHint.of(context), style: t.caption),
-        ]),
+        child: Column(
+          children: [
+            GdButton(
+              label: AuthText.confirm.of(context),
+              loading: _busy,
+              onPressed: complete ? _submit : null,
+              semanticsId: 'auth.confirm',
+            ),
+            const SizedBox(height: 10),
+            Text(AuthText.nextStepHint.of(context), style: t.caption),
+          ],
+        ),
       ),
     );
   }
@@ -445,16 +612,26 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
       _error = null;
     });
     try {
-      final result = await ref.read(authApiProvider).login(args.phone, _password.text);
+      final result = await ref
+          .read(authApiProvider)
+          .login(args.phone, _password.text);
       if (!mounted) return;
       switch (result) {
         case LoginSignedIn(:final tokens):
           await ref.read(sessionProvider.notifier).signedIn(tokens);
         case LoginNeedsCode(:final issue):
-          unawaited(context.push(
-            authRoute('/auth/otp', args.next),
-            extra: OtpArgs(phone: args.phone, purpose: OtpPurpose.loginNewDevice, issue: issue, password: _password.text, next: args.next),
-          ));
+          unawaited(
+            context.push(
+              authRoute('/auth/otp', args.next),
+              extra: OtpArgs(
+                phone: args.phone,
+                purpose: OtpPurpose.loginNewDevice,
+                issue: issue,
+                password: _password.text,
+                next: args.next,
+              ),
+            ),
+          );
       }
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -472,9 +649,21 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
     final args = widget.args!;
     setState(() => _busy = true);
     try {
-      final issue = await ref.read(authApiProvider).sendCode(args.phone, OtpPurpose.resetPassword);
+      final issue = await ref
+          .read(authApiProvider)
+          .sendCode(args.phone, OtpPurpose.resetPassword);
       if (!mounted) return;
-      unawaited(context.push(authRoute('/auth/otp', args.next), extra: OtpArgs(phone: args.phone, purpose: OtpPurpose.resetPassword, issue: issue, next: args.next)));
+      unawaited(
+        context.push(
+          authRoute('/auth/otp', args.next),
+          extra: OtpArgs(
+            phone: args.phone,
+            purpose: OtpPurpose.resetPassword,
+            issue: issue,
+            next: args.next,
+          ),
+        ),
+      );
     } on ApiException catch (e) {
       if (mounted) showError(context, e);
     } finally {
@@ -488,7 +677,12 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
     if (args == null) return const _Restart(next: null);
     final t = context.gdText;
     return Scaffold(
-      appBar: AppBar(leading: IconButton(icon: const Icon(Icons.chevron_left, size: 30), onPressed: () => context.pop())),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left, size: 30),
+          onPressed: () => context.pop(),
+        ),
+      ),
       body: AutofillGroup(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
@@ -496,16 +690,38 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
             AuthHeading(
               overline: AuthText.step.fmt(context, {'n': 2}),
               title: AuthText.enterPassword.of(context),
-              body: Text('${formatPhone(args.phone)}\n${AuthText.enterPasswordBody.of(context)}', style: t.bodyMd.copyWith(color: context.gd.inkMuted)),
+              body: Text(
+                '${formatPhone(args.phone)}\n${AuthText.enterPasswordBody.of(context)}',
+                style: t.bodyMd.copyWith(color: context.gd.inkMuted),
+              ),
             ),
             const SizedBox(height: 28),
-            GdPasswordField(controller: _password, label: AuthText.password.of(context), errorText: _error, onSubmitted: (_) => _submit(), semanticsId: 'auth.password'),
+            GdPasswordField(
+              controller: _password,
+              label: AuthText.password.of(context),
+              errorText: _error,
+              onSubmitted: (_) => _submit(),
+              semanticsId: 'auth.password',
+            ),
             const SizedBox(height: 8),
-            Align(alignment: Alignment.centerLeft, child: TextButton(onPressed: _busy ? null : _forgot, child: Text(AuthText.forgot.of(context)))),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: _busy ? null : _forgot,
+                child: Text(AuthText.forgot.of(context)),
+              ),
+            ),
           ],
         ),
       ),
-      bottomNavigationBar: GdBottomBar(child: GdButton(label: AuthText.signIn.of(context), loading: _busy, onPressed: _submit, semanticsId: 'auth.signIn')),
+      bottomNavigationBar: GdBottomBar(
+        child: GdButton(
+          label: AuthText.signIn.of(context),
+          loading: _busy,
+          onPressed: _submit,
+          semanticsId: 'auth.signIn',
+        ),
+      ),
     );
   }
 }
@@ -540,7 +756,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
     try {
       final settings = await ref.read(publicSettingsProvider.future);
-      final tokens = await ref.read(authApiProvider).register(
+      final tokens = await ref
+          .read(authApiProvider)
+          .register(
             verificationToken: args.verificationToken,
             name: _name.text.trim(),
             password: _password.text,
@@ -554,7 +772,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         setState(() => _errors = e.fieldErrors);
       } else {
         showError(context, e);
-        if (e.code == 'verification_invalid') context.go(authRoute('/auth', args.next));
+        if (e.code == 'verification_invalid') {
+          context.go(authRoute('/auth', args.next));
+        }
       }
     } on Object catch (e) {
       if (mounted) showError(context, e);
@@ -577,7 +797,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             AuthHeading(
               overline: AuthText.step.fmt(context, {'n': 3}),
               title: AuthText.createAccount.of(context),
-              body: Text(AuthText.createAccountBody.of(context), style: t.bodyMd.copyWith(color: context.gd.inkMuted)),
+              body: Text(
+                AuthText.createAccountBody.of(context),
+                style: t.bodyMd.copyWith(color: context.gd.inkMuted),
+              ),
             ),
             const SizedBox(height: 28),
             Semantics(
@@ -587,7 +810,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _name,
                 textCapitalization: TextCapitalization.words,
                 autofillHints: const [AutofillHints.name],
-                decoration: InputDecoration(labelText: AuthText.name.of(context), errorText: _errors['name']),
+                decoration: InputDecoration(
+                  labelText: AuthText.name.of(context),
+                  errorText: _errors['name'],
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -604,7 +830,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: GdBottomBar(child: GdButton(label: AuthText.finish.of(context), loading: _busy, onPressed: _submit, semanticsId: 'auth.register')),
+      bottomNavigationBar: GdBottomBar(
+        child: GdButton(
+          label: AuthText.finish.of(context),
+          loading: _busy,
+          onPressed: _submit,
+          semanticsId: 'auth.register',
+        ),
+      ),
     );
   }
 }
@@ -615,7 +848,8 @@ class ResetPasswordScreen extends ConsumerStatefulWidget {
   final RegisterArgs? args;
 
   @override
-  ConsumerState<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+  ConsumerState<ResetPasswordScreen> createState() =>
+      _ResetPasswordScreenState();
 }
 
 class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
@@ -636,7 +870,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       _error = null;
     });
     try {
-      final tokens = await ref.read(authApiProvider).resetPassword(args.verificationToken, _password.text);
+      final tokens = await ref
+          .read(authApiProvider)
+          .resetPassword(args.verificationToken, _password.text);
       await ref.read(sessionProvider.notifier).signedIn(tokens);
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -644,7 +880,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         setState(() => _error = e.fieldErrors['password']);
       } else {
         showError(context, e);
-        if (e.code == 'verification_invalid') context.go(authRoute('/auth', args.next));
+        if (e.code == 'verification_invalid') {
+          context.go(authRoute('/auth', args.next));
+        }
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -664,15 +902,32 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           AuthHeading(
             overline: AuthText.step.fmt(context, {'n': 3}),
             title: AuthText.newPassword.of(context),
-            body: Text(AuthText.newPasswordBody.of(context), style: t.bodyMd.copyWith(color: context.gd.inkMuted)),
+            body: Text(
+              AuthText.newPasswordBody.of(context),
+              style: t.bodyMd.copyWith(color: context.gd.inkMuted),
+            ),
           ),
           const SizedBox(height: 28),
-          GdPasswordField(controller: _password, label: AuthText.newPassword.of(context), errorText: _error, newPassword: true, onSubmitted: (_) => _submit(), semanticsId: 'auth.newPassword'),
+          GdPasswordField(
+            controller: _password,
+            label: AuthText.newPassword.of(context),
+            errorText: _error,
+            newPassword: true,
+            onSubmitted: (_) => _submit(),
+            semanticsId: 'auth.newPassword',
+          ),
           const SizedBox(height: 8),
           Text(AuthText.passwordRule.of(context), style: t.caption),
         ],
       ),
-      bottomNavigationBar: GdBottomBar(child: GdButton(label: AuthText.savePassword.of(context), loading: _busy, onPressed: _submit, semanticsId: 'auth.savePassword')),
+      bottomNavigationBar: GdBottomBar(
+        child: GdButton(
+          label: AuthText.savePassword.of(context),
+          loading: _busy,
+          onPressed: _submit,
+          semanticsId: 'auth.savePassword',
+        ),
+      ),
     );
   }
 }

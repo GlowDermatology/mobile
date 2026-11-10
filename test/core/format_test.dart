@@ -30,7 +30,10 @@ void main() {
     expect(formatDayMonth(t, AppLanguage.ru), '23 октября');
     expect(formatDateTime(t, AppLanguage.uz), '23-oktabr, 14:02');
     // 2026-10-26 is a Monday.
-    expect(formatSlot(DateTime.parse('2026-10-26T09:00:00+05:00'), AppLanguage.uz), 'Du, 26-oktabr · 09:00');
+    expect(
+      formatSlot(DateTime.parse('2026-10-26T09:00:00+05:00'), AppLanguage.uz),
+      'Du, 26-oktabr · 09:00',
+    );
     expect(isoDate(DateTime.parse('2026-10-26T23:30:00+05:00')), '2026-10-26');
     expect(isoDate(DateTime.parse('2026-10-26T19:30:00Z')), '2026-10-27');
     expect(formatCountdown(const Duration(minutes: 14, seconds: 37)), '14:37');

@@ -51,7 +51,11 @@ class _AttachPhoneScreenState extends ConsumerState<AttachPhoneScreen> {
     try {
       await body();
     } on ApiException catch (e) {
-      if (mounted) setState(() => _error = e.fieldErrors.values.firstOrNull ?? e.displayMessage);
+      if (mounted) {
+        setState(
+          () => _error = e.fieldErrors.values.firstOrNull ?? e.displayMessage,
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -63,37 +67,55 @@ class _AttachPhoneScreenState extends ConsumerState<AttachPhoneScreen> {
     final phone = toE164(_phone.text);
     return Scaffold(
       appBar: GdHeader(title: _title.of(context)),
-      body: ListView(padding: const EdgeInsets.all(20), children: [
-        Text(_body.of(context), style: context.gdText.bodyMd),
-        const SizedBox(height: 20),
-        GdPhoneField(controller: _phone, errorText: _sent ? null : _error),
-        if (_sent) ...[
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text(_body.of(context), style: context.gdText.bodyMd),
           const SizedBox(height: 20),
-          GdOtpField(length: 6, onChanged: (v) => setState(() => _code = v)),
-          if (me?.hasPassword ?? false) ...[
-            const SizedBox(height: 16),
-            GdPasswordField(controller: _password, label: AuthText.password.of(context)),
+          GdPhoneField(controller: _phone, errorText: _sent ? null : _error),
+          if (_sent) ...[
+            const SizedBox(height: 20),
+            GdOtpField(length: 6, onChanged: (v) => setState(() => _code = v)),
+            if (me?.hasPassword ?? false) ...[
+              const SizedBox(height: 16),
+              GdPasswordField(
+                controller: _password,
+                label: AuthText.password.of(context),
+              ),
+            ],
+            if (_error != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                _error!,
+                style: context.gdText.bodySm.copyWith(color: context.gd.danger),
+              ),
+            ],
           ],
-          if (_error != null) ...[const SizedBox(height: 10), Text(_error!, style: context.gdText.bodySm.copyWith(color: context.gd.danger))],
         ],
-      ]),
+      ),
       bottomNavigationBar: GdBottomBar(
         child: GdButton(
-          label: _sent ? AuthText.confirm.of(context) : AuthText.getCode.of(context),
+          label: _sent
+              ? AuthText.confirm.of(context)
+              : AuthText.getCode.of(context),
           loading: _busy,
           onPressed: phone == null
               ? null
               : () => _run(() async {
-                    final api = ref.read(authApiProvider);
-                    if (!_sent) {
-                      await api.sendAttachPhoneCode(phone);
-                      setState(() => _sent = true);
-                    } else {
-                      final updated = await api.attachPhone(phone: phone, code: _code, password: _password.text.isEmpty ? null : _password.text);
-                      ref.read(sessionProvider.notifier).updateMe(updated);
-                      if (context.mounted) context.pop(true);
-                    }
-                  }),
+                  final api = ref.read(authApiProvider);
+                  if (!_sent) {
+                    await api.sendAttachPhoneCode(phone);
+                    setState(() => _sent = true);
+                  } else {
+                    final updated = await api.attachPhone(
+                      phone: phone,
+                      code: _code,
+                      password: _password.text.isEmpty ? null : _password.text,
+                    );
+                    ref.read(sessionProvider.notifier).updateMe(updated);
+                    if (context.mounted) context.pop(true);
+                  }
+                }),
         ),
       ),
     );

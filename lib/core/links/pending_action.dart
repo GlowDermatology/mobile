@@ -22,4 +22,7 @@ class PendingActionController extends Notifier<PendingAction?> {
   }
 }
 
-final pendingActionProvider = NotifierProvider<PendingActionController, PendingAction?>(PendingActionController.new);
+final pendingActionProvider =
+    NotifierProvider<PendingActionController, PendingAction?>(
+      PendingActionController.new,
+    );

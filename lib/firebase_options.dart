@@ -4,6 +4,7 @@
 import 'package:firebase_core/firebase_core.dart';
 
 abstract final class DefaultFirebaseOptions {
-  static FirebaseOptions get currentPlatform =>
-      throw UnsupportedError('Firebase is not configured yet: run `flutterfire configure` (docs/setup.md).');
+  static FirebaseOptions get currentPlatform => throw UnsupportedError(
+    'Firebase is not configured yet: run `flutterfire configure` (docs/setup.md).',
+  );
 }

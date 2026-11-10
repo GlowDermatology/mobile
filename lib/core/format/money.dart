@@ -8,7 +8,10 @@ String formatNumber(num value, {AppLanguage language = AppLanguage.uz}) {
   final sign = value < 0 ? _minus : '';
   final digits = value.abs().truncate().toString();
   final separator = language == AppLanguage.en ? ',' : _nbsp;
-  final grouped = digits.replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => separator);
+  final grouped = digits.replaceAllMapped(
+    RegExp(r'\B(?=(\d{3})+(?!\d))'),
+    (_) => separator,
+  );
   return '$sign$grouped';
 }
 
@@ -25,7 +28,9 @@ String formatMoney(num value, {AppLanguage language = AppLanguage.uz}) {
 /// Ledger-style amount with an explicit sign: "+5 680", "−48 600".
 String formatSigned(num value, {AppLanguage language = AppLanguage.uz}) {
   if (value == 0) return '0';
-  return value > 0 ? '+${formatNumber(value, language: language)}' : formatNumber(value, language: language);
+  return value > 0
+      ? '+${formatNumber(value, language: language)}'
+      : formatNumber(value, language: language);
 }
 
 /// Cashback a purchase of [price] earns at [percent] ("1.00"), in whole so‘m.

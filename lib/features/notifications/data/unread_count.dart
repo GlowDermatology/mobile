@@ -25,7 +25,9 @@ class UnreadCountController extends Notifier<int> {
   Future<void> refresh() async {
     if (!ref.read(sessionProvider).signedIn) return;
     try {
-      final json = asJson(await ref.read(apiClientProvider).get('me/notifications/unread-count/'));
+      final json = asJson(
+        await ref.read(apiClientProvider).get('me/notifications/unread-count/'),
+      );
       state = asInt(json['unread_count']);
     } on Object {
       // keep the last value
@@ -35,4 +37,6 @@ class UnreadCountController extends Notifier<int> {
   void set(int value) => state = value;
 }
 
-final unreadCountProvider = NotifierProvider<UnreadCountController, int>(UnreadCountController.new);
+final unreadCountProvider = NotifierProvider<UnreadCountController, int>(
+  UnreadCountController.new,
+);

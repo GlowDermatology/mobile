@@ -14,11 +14,31 @@ class AppShell extends ConsumerWidget {
   final StatefulNavigationShell shell;
 
   static const _tabs = <(IconData, IconData, Tr, String)>[
-    (Icons.grid_view_outlined, Icons.grid_view_rounded, Strings.tabCatalog, 'tab.catalog'),
-    (Icons.qr_code_2_outlined, Icons.qr_code_2_rounded, Strings.tabQr, 'tab.qr'),
-    (Icons.shopping_bag_outlined, Icons.shopping_bag_rounded, Strings.tabCart, 'tab.cart'),
+    (
+      Icons.grid_view_outlined,
+      Icons.grid_view_rounded,
+      Strings.tabCatalog,
+      'tab.catalog',
+    ),
+    (
+      Icons.qr_code_2_outlined,
+      Icons.qr_code_2_rounded,
+      Strings.tabQr,
+      'tab.qr',
+    ),
+    (
+      Icons.shopping_bag_outlined,
+      Icons.shopping_bag_rounded,
+      Strings.tabCart,
+      'tab.cart',
+    ),
     (Icons.auto_awesome_outlined, Icons.auto_awesome, Strings.tabAi, 'tab.ai'),
-    (Icons.person_outline_rounded, Icons.person_rounded, Strings.tabSettings, 'tab.settings'),
+    (
+      Icons.person_outline_rounded,
+      Icons.person_rounded,
+      Strings.tabSettings,
+      'tab.settings',
+    ),
   ];
 
   @override
@@ -43,7 +63,10 @@ class AppShell extends ConsumerWidget {
                       selected: shell.currentIndex == i,
                       badge: i == 2 ? badge : 0,
                       semanticsId: _tabs[i].$4,
-                      onTap: () => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+                      onTap: () => shell.goBranch(
+                        i,
+                        initialLocation: i == shell.currentIndex,
+                      ),
                     ),
                   ),
               ],
@@ -56,7 +79,14 @@ class AppShell extends ConsumerWidget {
 }
 
 class _TabButton extends StatelessWidget {
-  const _TabButton({required this.icon, required this.label, required this.selected, required this.badge, required this.onTap, required this.semanticsId});
+  const _TabButton({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.badge,
+    required this.onTap,
+    required this.semanticsId,
+  });
   final IconData icon;
   final String label;
   final bool selected;
@@ -87,8 +117,15 @@ class _TabButton extends StatelessWidget {
                   duration: const Duration(milliseconds: 180),
                   width: 54,
                   height: 30,
-                  decoration: BoxDecoration(color: selected ? c.gold : Colors.transparent, borderRadius: BorderRadius.circular(15)),
-                  child: Icon(icon, size: 22, color: selected ? c.onGold : color),
+                  decoration: BoxDecoration(
+                    color: selected ? c.gold : Colors.transparent,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 22,
+                    color: selected ? c.onGold : color,
+                  ),
                 ),
                 if (badge > 0)
                   Positioned(
@@ -104,13 +141,26 @@ class _TabButton extends StatelessWidget {
                         border: Border.all(color: c.nav, width: 2),
                       ),
                       alignment: Alignment.center,
-                      child: Text('$badge', style: context.gdText.caption.copyWith(color: c.ink, fontWeight: FontWeight.w800, fontSize: 11)),
+                      child: Text(
+                        '$badge',
+                        style: context.gdText.caption.copyWith(
+                          color: c.ink,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
+                        ),
+                      ),
                     ),
                   ),
               ],
             ),
             const SizedBox(height: 5),
-            Text(label, style: context.gdText.caption.copyWith(color: color, fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
+            Text(
+              label,
+              style: context.gdText.caption.copyWith(
+                color: color,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
           ],
         ),
       ),
