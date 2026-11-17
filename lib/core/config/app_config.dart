@@ -34,4 +34,13 @@ abstract final class AppConfig {
     'WEBSITE_URL',
     defaultValue: 'https://glowderma.uz',
   );
+
+  /// Raster tile URL template of the address map (`{z}/{x}/{y}`), the
+  /// website's `NEXT_PUBLIC_MAP_TILE_URL`. OpenStreetMap's public tiles by
+  /// default; their usage policy allows light use only, so a busy production
+  /// build should point this at a tile service of its own.
+  static const String mapTileUrl = String.fromEnvironment(
+    'MAP_TILE_URL',
+    defaultValue: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  );
 }
