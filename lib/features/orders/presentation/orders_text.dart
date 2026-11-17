@@ -276,4 +276,31 @@ abstract final class OrdersText {
     'Заказ отменён',
     'Order cancelled',
   );
+
+  // Yandex delivery (website `order.method/stage/eta/courier/…`)
+  static const deliveryMethod = Tr('Usul', 'Способ', 'Option');
+  static const deliveryStage = Tr('Holat', 'Статус', 'Status');
+  static const deliveryEta = Tr(
+    'Kutilayotgan vaqt',
+    'Ожидаемое время',
+    'Expected',
+  );
+  static const courier = Tr('Kuryer', 'Курьер', 'Courier');
+  static const trackCourier = Tr(
+    'Kuryerni xaritada kuzatish',
+    'Следить за курьером на карте',
+    'Follow the courier on the map',
+  );
+  static const deliveryLive = Tr(
+    'Holat avtomatik yangilanadi',
+    'Статус обновляется автоматически',
+    'The status updates automatically',
+  );
+  static const today = Tr('Bugun', 'Сегодня', 'Today');
+  static const tomorrow = Tr('Ertaga', 'Завтра', 'Tomorrow');
+  static const cannotOpenTracking = Tr(
+    'Kuzatuv sahifasini ochib bo‘lmadi.',
+    'Не удалось открыть страницу отслеживания.',
+    'Could not open the tracking page.',
+  );
 }

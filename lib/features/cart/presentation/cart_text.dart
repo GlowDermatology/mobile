@@ -109,4 +109,98 @@ abstract final class CartText {
     'Your cart is kept in your account — the same on the app and the website.',
   );
   static const signIn = Tr('Kirish', 'Войти', 'Sign in');
+
+  // Unpaid order (website `ordersCopy.recovery`)
+  static const recoveryTitle = Tr(
+    'To‘lov kutilmoqda',
+    'Ожидает оплаты',
+    'Awaiting payment',
+  );
+  static const recoveryBody = Tr(
+    'Mahsulotlaringiz saqlangan. To‘lov hali tasdiqlanmadi. To‘lovni davom ettiring yoki mahsulotlarni tahrirlang.',
+    'Ваши товары сохранены. Оплата ещё не подтверждена. Продолжите оплату или измените товары.',
+    'Your items are saved. Payment has not been confirmed. Continue payment or edit your items.',
+  );
+  static const recoveryConfirmingTitle = Tr(
+    'To‘lov tasdiqlanishi kutilmoqda',
+    'Ожидаем подтверждение оплаты',
+    'Waiting for payment confirmation',
+  );
+  static const recoveryConfirmingBody = Tr(
+    'To‘lov tizimi javobini kutyapmiz. Natija aniqlanmaguncha qayta to‘lamang. Holat avtomatik yangilanadi.',
+    'Ждём ответ платёжной системы. Не платите повторно до получения результата. Статус обновляется автоматически.',
+    'We’re waiting for the payment provider. Please don’t pay again until the result is known. The status updates automatically.',
+  );
+  static const recoveryExpiredTitle = Tr(
+    'Band qilish muddati tugadi',
+    'Срок бронирования истёк',
+    'Your reservation expired',
+  );
+  static const recoveryExpiredBody = Tr(
+    'Mahsulotlaringiz saqlangan. Savatga qaytarganingizda narx va mavjudlik yangilanadi.',
+    'Ваши товары сохранены. При возврате в корзину цены и наличие обновятся.',
+    'Your items are saved. Prices and availability will be checked when you return them to the cart.',
+  );
+  static const recoveryCancelledTitle = Tr(
+    'To‘lanmagan buyurtma bekor qilingan',
+    'Неоплаченный заказ отменён',
+    'Your unpaid order was cancelled',
+  );
+  static const recoveryCancelledBody = Tr(
+    'Mahsulotlarni savatga qaytarib, qaytadan rasmiylashtirishingiz mumkin.',
+    'Вы можете вернуть товары в корзину и оформить заказ заново.',
+    'You can return the items to your cart and check out again.',
+  );
+  static const recoveryContinuePayment = Tr(
+    'To‘lovni davom ettirish',
+    'Продолжить оплату',
+    'Continue payment',
+  );
+  static const recoveryEdit = Tr(
+    'Mahsulotlarni tahrirlash',
+    'Изменить товары',
+    'Edit items',
+  );
+  static const recoveryEditHint = Tr(
+    'Tahrirlash to‘lanmagan buyurtmani bekor qiladi va mahsulotlarni savatga qaytaradi. Keyin qo‘shilgan mahsulotlar ham saqlanadi.',
+    'Изменение отменит неоплаченный заказ и вернёт товары в корзину. Добавленные позже товары сохранятся.',
+    'Editing cancels the unpaid order and returns its items to your cart. Items added afterwards are kept too.',
+  );
+  static const recoveryRestore = Tr(
+    'Mahsulotlarni savatga qaytarish',
+    'Вернуть товары в корзину',
+    'Return items to cart',
+  );
+  static const recoveryRestored = Tr(
+    'Mahsulotlar savatga qaytarildi. Narx va miqdorlarni tekshiring.',
+    'Товары возвращены в корзину. Проверьте цены и количество.',
+    'Items returned to your cart. Check the prices and quantities.',
+  );
+  static const recoveryNewItems = Tr(
+    'Keyin qo‘shilgan mahsulotlar',
+    'Товары, добавленные позже',
+    'Items added afterwards',
+  );
+  static const recoveryResolveFirst = Tr(
+    'Yangi buyurtma berish uchun avval yuqoridagi to‘lovni davom ettiring yoki mahsulotlarni tahrirlang.',
+    'Перед новым заказом продолжите оплату выше или измените товары.',
+    'Before placing a new order, continue payment above or edit your items.',
+  );
+  static const recoveryRefresh = Tr(
+    'Holatni yangilash',
+    'Обновить статус',
+    'Refresh status',
+  );
+  static const recoveryDetails = Tr(
+    'Buyurtma tafsilotlari',
+    'Подробнее о заказе',
+    'Order details',
+  );
+  static const recoveryDeliveryFee = Tr(
+    'Yetkazib berish',
+    'Доставка',
+    'Delivery',
+  );
+  static const recoveryCashback = Tr('Cashback', 'Кешбэк', 'Cashback');
+  static const recoveryTotal = Tr('Jami', 'Итого', 'Total');
 }

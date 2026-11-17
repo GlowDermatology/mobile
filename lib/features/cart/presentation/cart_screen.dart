@@ -15,8 +15,10 @@ import '../../../core/widgets/gd_widgets.dart';
 import '../../auth/application/session_controller.dart';
 import '../../settings/data/public_settings.dart';
 import '../application/cart_controller.dart';
+import '../../orders/data/order_models.dart';
 import '../data/cart_models.dart';
 import 'cart_line_view.dart';
+import 'checkout_recovery_card.dart';
 import 'cart_text.dart';
 
 /// The "Savat" tab (PDF page 5, contract §2.5). Selection only helps to remove
@@ -28,10 +30,82 @@ class CartScreen extends ConsumerStatefulWidget {
   ConsumerState<CartScreen> createState() => _CartScreenState();
 }
 
+/// While an order waits for payment the cart is re-read this often (the
+/// payment may finish on another device or in the provider's app).
+const cartUnpaidPollInterval = Duration(seconds: 5);
+
 class _CartScreenState extends ConsumerState<CartScreen> {
   final _selected = <int>{};
   final _busy = <int>{};
   bool _removing = false;
+  bool _recoveryBusy = false;
+
+  late final AppLifecycleListener _lifecycle;
+  bool _appResumed = true;
+  bool _tabVisible = true;
+  Timer? _poll;
+  bool _syncScheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    _appResumed = lifecycle == null || lifecycle == AppLifecycleState.resumed;
+    _lifecycle = AppLifecycleListener(
+      onStateChange: (s) {
+        final resumed = s == AppLifecycleState.resumed;
+        if (resumed == _appResumed) return;
+        _appResumed = resumed;
+        // Back from the payment app or another device: the cart may differ.
+        if (resumed && _tabVisible) _reloadQuietly();
+        _scheduleSync();
+      },
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _tabVisible = TickerMode.valuesOf(context).enabled;
+    _scheduleSync();
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    _poll?.cancel();
+    super.dispose();
+  }
+
+  void _scheduleSync() {
+    if (_syncScheduled) return;
+    _syncScheduled = true;
+    scheduleMicrotask(() {
+      _syncScheduled = false;
+      if (mounted) _syncPolling();
+    });
+  }
+
+  /// Polls every 5 s while the tab is seen, the app is in the foreground
+  /// and an order waits for payment; one timer at most.
+  void _syncPolling() {
+    final signedIn = ref.read(sessionProvider).signedIn;
+    final unpaid = ref.read(cartProvider).value?.hasUnpaidOrder ?? false;
+    final active = signedIn && unpaid && _appResumed && _tabVisible;
+    if (!active) {
+      _poll?.cancel();
+      _poll = null;
+    } else {
+      _poll ??= Timer.periodic(cartUnpaidPollInterval, (_) => _reloadQuietly());
+    }
+  }
+
+  void _reloadQuietly() {
+    if (!ref.read(sessionProvider).signedIn) return;
+    // Never over a write in flight: its answer is the newer cart.
+    if (_recoveryBusy || _removing || _busy.isNotEmpty) return;
+    unawaited(ref.read(cartProvider.notifier).reload());
+  }
 
   Future<void> _guard(int productId, Future<void> Function() body) async {
     setState(() => _busy.add(productId));
@@ -129,6 +203,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final cartAsync = ref.watch(cartProvider);
     final settings = ref.watch(publicSettingsProvider).value;
     final cart = cartAsync.value;
+    ref.listen(cartProvider, (_, _) => _scheduleSync());
+    ref.listen(sessionProvider.select((s) => s.signedIn), (_, _) {
+      _scheduleSync();
+    });
 
     if (cart != null) _selected.retainAll(cart.items.map((l) => l.productId));
 
@@ -159,6 +237,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               ),
             )
           : const GdLoading();
+    } else if (cart.items.isEmpty && cart.checkoutOrder != null) {
+      body = ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(GdSpace.page, 4, GdSpace.page, 24),
+        children: [_recovery(cart.checkoutOrder!)],
+      );
     } else if (cart.items.isEmpty) {
       body = _fill(
         GdEmptyView(
@@ -214,6 +298,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     ),
   );
 
+  Widget _recovery(OrderDetail order) => CheckoutRecoveryCard(
+    key: ValueKey('cart.recovery.${order.id}'),
+    order: order,
+    onBusyChanged: (busy) => _recoveryBusy = busy,
+  );
+
   Widget _list(Cart cart) {
     final allSelected =
         cart.items.isNotEmpty && _selected.length == cart.items.length;
@@ -221,6 +311,18 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(GdSpace.page, 4, GdSpace.page, 24),
       children: [
+        if (cart.checkoutOrder != null) ...[
+          _recovery(cart.checkoutOrder!),
+          const SizedBox(height: 24),
+          Semantics(
+            header: true,
+            child: Text(
+              CartText.recoveryNewItems.of(context),
+              style: context.gdText.heading,
+            ),
+          ),
+          const SizedBox(height: 4),
+        ],
         _SelectAllRow(
           selected: allSelected,
           count: _selected.length,

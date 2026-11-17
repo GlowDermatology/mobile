@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,9 +11,12 @@ import '../../../core/format/money.dart';
 import '../../../core/i18n/tr.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/widgets/gd_widgets.dart';
+import '../application/delivery_refresh.dart';
 import '../application/orders_list_controller.dart';
 import '../data/order_models.dart';
 import '../data/orders_api.dart';
+import 'delivery_format.dart';
+import 'delivery_status_card.dart';
 import 'order_actions.dart';
 import 'order_widgets.dart';
 import 'orders_text.dart';
@@ -29,8 +34,48 @@ class OrderDetailScreen extends ConsumerStatefulWidget {
 class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
   bool _cancelling = false;
   bool _reordering = false;
+  late final DeliveryRefresher _refresher;
+  late final AppLifecycleListener _lifecycle;
+  bool _appResumed = true;
+  bool _routeVisible = true;
+  bool _live = false;
 
   int get _id => widget.orderId;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresher = DeliveryRefresher(onRefresh: () => unawaited(_refresh()));
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    _appResumed = lifecycle == null || lifecycle == AppLifecycleState.resumed;
+    _lifecycle = AppLifecycleListener(
+      onStateChange: (s) {
+        final resumed = s == AppLifecycleState.resumed;
+        if (resumed == _appResumed) return;
+        _appResumed = resumed;
+        _syncRefresh();
+      },
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _routeVisible = TickerMode.valuesOf(context).enabled;
+    _syncRefresh();
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    _refresher.dispose();
+    super.dispose();
+  }
+
+  /// A Yandex parcel on its way: re-read the order every 30 s while the
+  /// screen is seen; pause in the background, catch up on resume.
+  void _syncRefresh() =>
+      _refresher.update(live: _live, visible: _appResumed && _routeVisible);
 
   Future<void> _refresh() => ref
       .refresh(orderDetailProvider(_id).future)
@@ -61,6 +106,11 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
   Widget build(BuildContext context) {
     final async = ref.watch(orderDetailProvider(_id));
     final order = async.value;
+    final live = order != null && shouldRefreshDelivery(order);
+    if (live != _live) {
+      _live = live;
+      _syncRefresh();
+    }
     return Scaffold(
       appBar: GdHeader(title: OrdersText.orderNumber.fmt(context, {'id': _id})),
       body: switch (async) {
@@ -145,6 +195,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     final extra = extraTimeline(order.progress, order.timeline);
     final provider = providerName(order.payment.provider);
     final paid = order.payment.isSettled || order.isPaid;
+    final yandex = order.delivery?.isYandex ?? false;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(GdSpace.page, 4, GdSpace.page, 24),
@@ -160,7 +211,9 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                   Flexible(child: OrderStatusChip(order: order)),
                   const SizedBox(width: 12),
                   const Spacer(),
-                  if (order.shipment != null &&
+                  if (yandex)
+                    const SizedBox.shrink()
+                  else if (order.shipment != null &&
                       order.shipment!.display.isNotEmpty)
                     Text(
                       order.shipment!.display,
@@ -173,6 +226,10 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                     ),
                 ],
               ),
+              if (yandex) ...[
+                const SizedBox(height: 12),
+                DeliveryStatusCard(order: order, live: _live),
+              ],
               if (order.progress.isNotEmpty) ...[
                 const SizedBox(height: 18),
                 OrderProgress(order: order),
@@ -317,17 +374,29 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                 for (final e in extra)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Column(
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(e.title, style: t.label),
-                        Text(
-                          [
-                            if (e.at != null) formatDateTime(e.at!, lang),
-                            if (e.subtitle != null && e.subtitle!.isNotEmpty)
-                              e.subtitle!,
-                          ].join(' · '),
-                          style: t.caption,
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6, right: 12),
+                          child: _TimelineDot(type: e.type),
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(e.title, style: t.label),
+                              Text(
+                                [
+                                  if (e.at != null) formatDateTime(e.at!, lang),
+                                  if (e.subtitle != null &&
+                                      e.subtitle!.isNotEmpty)
+                                    e.subtitle!,
+                                ].join(' · '),
+                                style: t.caption,
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -383,6 +452,29 @@ class _InfoCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The dot of a History entry: red for `delivery_failed`, orange for
+/// `shipment_returned`, quiet otherwise.
+class _TimelineDot extends StatelessWidget {
+  const _TimelineDot({required this.type});
+  final String type;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.gd;
+    final color = switch (timelineAlertTone(type)) {
+      GdTone.danger => c.danger,
+      GdTone.warning => c.warning,
+      _ => c.lineStrong,
+    };
+    return Container(
+      key: ValueKey('timeline.dot.$type'),
+      width: 9,
+      height: 9,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }

@@ -165,6 +165,22 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   }
 }
 
+/// "Ekspress · Yo‘lda" for a Yandex order on its way (processing or with the
+/// courier) once it has a stage; null otherwise.
+String? deliveryLine(OrderSummary order) {
+  final d = order.delivery;
+  if (d == null || !d.isYandex || d.stage == null || d.stageLabel == null) {
+    return null;
+  }
+  if (order.status != OrderStatus.processing &&
+      order.status != OrderStatus.handedToCourier) {
+    return null;
+  }
+  return d.methodLabel == null
+      ? d.stageLabel
+      : '${d.methodLabel} · ${d.stageLabel}';
+}
+
 /// One order in the list: number, date, status, previews, total.
 class OrderCard extends StatelessWidget {
   const OrderCard({super.key, required this.order, required this.onTap});
@@ -249,6 +265,26 @@ class OrderCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (deliveryLine(order) case final line?) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(
+                    Icons.local_shipping_outlined,
+                    size: 16,
+                    color: c.goldInk,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      line,
+                      style: t.label.copyWith(fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             if (payable) ...[
               const SizedBox(height: 12),
               Row(
