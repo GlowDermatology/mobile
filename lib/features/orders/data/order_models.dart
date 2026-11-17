@@ -86,6 +86,8 @@ class OrderSummary {
     required this.payment,
     required this.payBy,
     required this.trackingNumber,
+    this.previewThumbnails = const [],
+    this.delivery,
   });
 
   factory OrderSummary.fromJson(Json j) => OrderSummary(
@@ -105,6 +107,13 @@ class OrderSummary {
         : OrderPayment.none,
     payBy: asDate(j['pay_by']),
     trackingNumber: asStringOrNull(j['tracking_number']),
+    previewThumbnails: [
+      if (j['preview_thumbnail_images'] case final List<Object?> list)
+        ...list.whereType<String>().where((e) => e.isNotEmpty),
+    ],
+    delivery: j['delivery'] is Map
+        ? OrderDelivery.fromJson(asJson(j['delivery']))
+        : null,
   );
 
   final int id;
@@ -118,6 +127,23 @@ class OrderSummary {
   final OrderPayment payment;
   final DateTime? payBy;
   final String? trackingNumber;
+
+  /// 400 px variants of [previewImages], same order (may be empty or shorter).
+  final List<String> previewThumbnails;
+
+  /// Home delivery: carrier, method and courier stage; null for pickup.
+  final OrderDelivery? delivery;
+
+  /// Preview images to draw as small tiles: (thumbnail, original).
+  List<({String url, String original})> get previewTiles => [
+    for (var i = 0; i < previewImages.length; i++)
+      (
+        url: i < previewThumbnails.length
+            ? previewThumbnails[i]
+            : previewImages[i],
+        original: previewImages[i],
+      ),
+  ];
 
   bool get awaitingPayment => status == OrderStatus.awaitingPayment;
 
@@ -138,12 +164,14 @@ class OrderItem {
     required this.unitPrice,
     required this.promo,
     required this.lineTotal,
+    this.imageThumbnailUrl,
   });
 
   factory OrderItem.fromJson(Json j) => OrderItem(
     productId: asInt(j['product_id']),
     name: asString(j['name']),
     imageUrl: asStringOrNull(j['image_url']),
+    imageThumbnailUrl: asStringOrNull(j['image_thumbnail_url']),
     quantity: asInt(j['quantity'], 1),
     unitPrice: asInt(j['unit_price']),
     promo: asBool(j['promo']),
@@ -153,6 +181,10 @@ class OrderItem {
   final int productId;
   final String name;
   final String? imageUrl;
+
+  /// 400 px variant (null → the original).
+  final String? imageThumbnailUrl;
+  String? get thumbUrl => imageThumbnailUrl ?? imageUrl;
   final int quantity;
   final int unitPrice;
   final bool promo;
@@ -332,6 +364,8 @@ class OrderDetail extends OrderSummary {
     required super.payment,
     required super.payBy,
     required super.trackingNumber,
+    super.previewThumbnails,
+    super.delivery,
     required this.fulfilmentLabel,
     required this.items,
     required this.itemsSubtotal,
@@ -365,6 +399,8 @@ class OrderDetail extends OrderSummary {
       payment: s.payment,
       payBy: s.payBy,
       trackingNumber: s.trackingNumber,
+      previewThumbnails: s.previewThumbnails,
+      delivery: s.delivery,
       fulfilmentLabel: asString(j['fulfilment_label']),
       items: asJsonList(j['items']).map(OrderItem.fromJson).toList(),
       itemsSubtotal: asInt(j['items_subtotal']),
@@ -482,4 +518,108 @@ List<TimelineEntry> extraTimeline(
     for (final s in progress) ?timelineFor(s, timeline),
   };
   return timeline.where((e) => !used.contains(e)).toList();
+}
+
+/// `ShipmentStage` (contract §3): the Yandex courier stages.
+abstract final class ShipmentStage {
+  static const awaitingDispatch = 'awaiting_dispatch';
+  static const courierRequested = 'courier_requested';
+  static const courierAssigned = 'courier_assigned';
+  static const courierArrived = 'courier_arrived';
+  static const inTransit = 'in_transit';
+  static const atDestination = 'at_destination';
+  static const delivered = 'delivered';
+  static const returning = 'returning';
+  static const returned = 'returned';
+  static const cancelled = 'cancelled';
+  static const failed = 'failed';
+
+  /// Stages in which a courier is on the way (name and vehicle are shown).
+  static const courierStages = {
+    courierAssigned,
+    courierArrived,
+    inTransit,
+    atDestination,
+  };
+
+  /// Stages after which nothing moves any more.
+  static const finished = {delivered, cancelled, returned};
+}
+
+/// `CustomerOrderDelivery` (contract §2.8): how a home-delivery order travels.
+/// A BTS order carries only [provider]; a Yandex order adds the method, the
+/// courier stage (null until staff dispatch it), the promised window, the
+/// courier (while a claim is open) and Yandex's tracking page.
+class OrderDelivery {
+  const OrderDelivery({
+    required this.provider,
+    this.method,
+    this.methodLabel,
+    this.stage,
+    this.stageLabel,
+    this.etaFrom,
+    this.etaTo,
+    this.courierName,
+    this.courierVehicle,
+    this.trackingUrl,
+  });
+
+  factory OrderDelivery.fromJson(Json j) {
+    final url = asStringOrNull(j['tracking_url']);
+    String? text(String key) {
+      final v = asStringOrNull(j[key])?.trim();
+      return v == null || v.isEmpty ? null : v;
+    }
+
+    return OrderDelivery(
+      provider: asString(j['provider']),
+      method: text('method'),
+      methodLabel: text('method_label'),
+      stage: text('stage'),
+      stageLabel: text('stage_label'),
+      etaFrom: asDate(j['eta_from']),
+      etaTo: asDate(j['eta_to']),
+      courierName: text('courier_name'),
+      courierVehicle: text('courier_vehicle'),
+      // Only an https page is opened.
+      trackingUrl: url != null && Uri.tryParse(url)?.scheme == 'https'
+          ? url
+          : null,
+    );
+  }
+
+  final String provider;
+  final String? method;
+  final String? methodLabel;
+  final String? stage;
+  final String? stageLabel;
+  final DateTime? etaFrom;
+  final DateTime? etaTo;
+  final String? courierName;
+  final String? courierVehicle;
+  final String? trackingUrl;
+
+  bool get isYandex => provider == 'yandex';
+  bool get isFinished =>
+      stage != null && ShipmentStage.finished.contains(stage);
+  bool get courierShown =>
+      stage != null && ShipmentStage.courierStages.contains(stage);
+
+  /// "Aziz · Chevrolet Cobalt oq 01A777AA", or null.
+  String? get courierLine {
+    if (!courierShown) return null;
+    final parts = [?courierName, ?courierVehicle];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
+  /// The promised window is shown until the parcel is done or coming back.
+  bool get etaShown =>
+      etaFrom != null &&
+      etaTo != null &&
+      !{
+        ShipmentStage.returning,
+        ShipmentStage.delivered,
+        ShipmentStage.cancelled,
+        ShipmentStage.returned,
+      }.contains(stage);
 }

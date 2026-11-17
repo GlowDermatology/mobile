@@ -88,7 +88,8 @@ class _ProductCardTileState extends ConsumerState<ProductCardTile> {
                 fit: StackFit.expand,
                 children: [
                   GdImage(
-                    url: p.mainImageUrl,
+                    url: p.mediumUrl,
+                    fallbackUrl: p.mainImageUrl,
                     seed: p.artSeed,
                     radius: 14,
                     artSize: 64,

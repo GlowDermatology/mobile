@@ -129,7 +129,12 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       children: [
         Row(
           children: [
-            SpecialistAvatar(name: s.name, photoUrl: s.photoUrl, size: 54),
+            SpecialistAvatar(
+              name: s.name,
+              photoUrl: s.photoUrl,
+              photoThumbUrl: s.photoThumbUrl,
+              size: 54,
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(

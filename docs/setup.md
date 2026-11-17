@@ -66,6 +66,9 @@ Without these, nobody can sign up or pay outside local fake mode. Each provider'
 - Click: `CLICK_MODE=live`, `CLICK_SERVICE_ID`, `CLICK_MERCHANT_ID`, `CLICK_MERCHANT_USER_ID` in `backend.env`;
   `CLICK_SECRET_KEY` in Vault.
 - Payme: `PAYME_MODE=live`, `PAYME_MERCHANT_ID` in `backend.env`; `PAYME_KEY` in Vault.
+- Yandex courier delivery: `YANDEX_DELIVERY_MODE=live` in `backend.env`, `YANDEX_DELIVERY_TOKEN` in Vault, and the
+  warehouse, methods and opening hours filled in on the ops console's delivery settings page
+  (`backend/docs/integrations/yandex-delivery.md`). Until then the app offers BTS and pickup only.
 
 ## 5. Apple (iOS)
 

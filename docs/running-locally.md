@@ -39,6 +39,11 @@ flutter run --dart-define-from-file=tool/defines/staging.json
    Debug builds allow plain `http://`; release builds only HTTPS.
 3. In the app: sign up with any number (code `123456`), add products, check out, and on the payment screen use
    **Simulate payment (dev)** (shown only with `ALLOW_DEV_TOOLS=true`).
+4. **Yandex courier options** need the backend's delivery settings, which no seed fills in. In the ops console
+   (`/django-admin/delivery/deliverysettings/1/change/`) or a `manage.py shell`, set the warehouse address,
+   coordinates, contact name and phone, switch on Standard and/or Express, and add opening hours for every weekday.
+   Then add an address with a map pin in the app. The fake courier moves only when staff dispatch the order
+   (admin `orders/{id}/dispatch/`; locally `admin/dev/yandex/{id}/advance/` steps it forward).
 
 ## Option D — quick look in Chrome
 

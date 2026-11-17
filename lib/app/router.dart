@@ -129,7 +129,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/checkout', builder: (_, _) => const CheckoutScreen()),
       GoRoute(
         path: '/checkout/address',
-        builder: (_, _) => const AddressFormScreen(),
+        builder: (_, s) => AddressFormScreen(
+          addressId: int.tryParse(s.uri.queryParameters['id'] ?? ''),
+        ),
       ),
       GoRoute(
         path: '/pay/:orderId',

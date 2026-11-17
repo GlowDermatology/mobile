@@ -96,7 +96,22 @@ String stepSubtitle(
   return parts.join(' · ');
 }
 
-/// Vertical stepper built from `progress[]` (PDF p.8).
+/// The fallback subtitle of a step without a timeline entry: a BTS delivery
+/// still on its way reads "BTS tasdiqlagach yangilanadi". Yandex orders never
+/// do (their stage label is shown instead, see [OrderProgress]).
+Tr? openStepHint(OrderDetail order, ProgressStep step) {
+  if (order.fulfilment != 'delivery') return null;
+  if (order.delivery?.isYandex ?? false) return null;
+  final open =
+      step.state == ProgressState.current ||
+      step.state == ProgressState.upcoming;
+  return step.step == 'delivered' && open ? OrdersText.awaitBts : null;
+}
+
+/// Vertical stepper built from `progress[]` (PDF p.8). The step states are
+/// the server's: `with_courier` is reached by `handed_to_courier` only (a
+/// Yandex `shipment_created` means a courier was requested, and
+/// [timelineFor] never ties it to that step).
 class OrderProgress extends StatelessWidget {
   const OrderProgress({super.key, required this.order});
   final OrderDetail order;
@@ -123,14 +138,16 @@ class OrderProgress extends StatelessWidget {
   String _subtitle(BuildContext context, ProgressStep step) {
     final text = stepSubtitle(step, order.timeline, context.language);
     if (text.isNotEmpty) return text;
-    final delivery = order.fulfilment == 'delivery';
-    final open =
-        step.state == ProgressState.current ||
-        step.state == ProgressState.upcoming;
-    if (delivery && step.step == 'delivered' && open) {
-      return OrdersText.awaitBts.of(context);
-    }
-    return '';
+    return openStepHint(order, step)?.of(context) ?? _stageHint(step) ?? '';
+  }
+
+  /// A Yandex order's current courier step reads the server's stage label.
+  String? _stageHint(ProgressStep step) {
+    final delivery = order.delivery;
+    if (delivery == null || !delivery.isYandex) return null;
+    if (step.state != ProgressState.current) return null;
+    if (step.step != 'with_courier' && step.step != 'delivered') return null;
+    return delivery.stage == null ? null : delivery.stageLabel;
   }
 }
 
@@ -285,7 +302,12 @@ class OrderItemRow extends StatelessWidget {
         children: [
           SizedBox.square(
             dimension: 52,
-            child: GdImage(url: item.imageUrl, seed: item.name, artSize: 34),
+            child: GdImage(
+              url: item.thumbUrl,
+              fallbackUrl: item.imageUrl,
+              seed: item.name,
+              artSize: 34,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(

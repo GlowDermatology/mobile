@@ -6,6 +6,7 @@ import '../../../app/providers.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/json.dart';
 import '../../auth/application/session_controller.dart';
+import '../../orders/data/orders_api.dart';
 import '../data/cart_models.dart';
 
 /// The server cart (contract §2.5). Every write answers the whole cart, which
@@ -104,6 +105,31 @@ class CartController extends AsyncNotifier<Cart> {
     }
   }
 
+  /// "Mahsulotlarni tahrirlash / savatga qaytarish": cancels the unpaid
+  /// order [orderId] (if still unpaid) and merges its lines into the cart in
+  /// one step (`reorder {cancel_unpaid: true}`, contract §2.7.4). One
+  /// `Idempotency-Key` per intent. Throws [ApiException] (`cart_full`,
+  /// `payment_in_progress`, `not_cancellable`).
+  Future<Cart> restoreUnpaid(int orderId) async {
+    final keys = ref.read(idempotencyProvider);
+    final intent = 'cart.restoreUnpaid.$orderId';
+    try {
+      final cart = await ref
+          .read(ordersApiProvider)
+          .reorder(
+            orderId,
+            idempotencyKey: keys.keyFor(intent),
+            cancelUnpaid: true,
+          );
+      keys.done(intent);
+      state = AsyncData(cart);
+      return cart;
+    } on ApiException catch (e) {
+      if (!e.isNetwork) keys.done(intent);
+      rethrow;
+    }
+  }
+
   /// Replace the state with a cart returned by another endpoint (reorder).
   void replace(Cart cart) => state = AsyncData(cart);
 }
@@ -112,7 +138,7 @@ final cartProvider = AsyncNotifierProvider<CartController, Cart>(
   CartController.new,
 );
 
-/// Tab badge: number of lines.
+/// Tab badge: the cart's lines plus those held by an unpaid order.
 final cartBadgeProvider = Provider<int>(
-  (ref) => ref.watch(cartProvider).value?.itemCount ?? 0,
+  (ref) => ref.watch(cartProvider).value?.badgeCount ?? 0,
 );

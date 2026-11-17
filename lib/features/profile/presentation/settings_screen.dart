@@ -247,7 +247,8 @@ class _ProfileCard extends StatelessWidget {
           GdAvatar(
             initials: me?.initials ?? '',
             size: 58,
-            imageUrl: me?.imageUrl,
+            imageUrl: me?.imageThumbUrl,
+            fallbackUrl: me?.imageUrl,
           ),
           const SizedBox(width: 14),
           Expanded(

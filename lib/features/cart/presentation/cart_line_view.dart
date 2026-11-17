@@ -74,7 +74,10 @@ class CartLineView {
 
 /// Why the "To‘lash" bar is disabled, or null when the cart can be paid.
 /// [settings] is null while the public settings are not loaded yet.
+/// An order awaiting payment blocks a new checkout until it is paid or its
+/// items are edited (the website's `resolveFirst`).
 Tr? payBlockReason(Cart cart, PublicSettings? settings) {
+  if (cart.hasUnpaidOrder) return CartText.recoveryResolveFirst;
   if (settings != null && !settings.onlineSalesEnabled) {
     return CartText.salesOff;
   }

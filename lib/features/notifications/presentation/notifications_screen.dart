@@ -275,7 +275,7 @@ class InboxTile extends StatelessWidget {
               ],
               if (item.kind == 'promo' && (item.imageUrl ?? '').isNotEmpty) ...[
                 const SizedBox(height: 10),
-                _PromoImage(url: item.imageUrl!),
+                _PromoImage(url: item.mediumUrl!, fallbackUrl: item.imageUrl!),
               ],
             ],
           ),
@@ -315,8 +315,9 @@ class InboxTile extends StatelessWidget {
 };
 
 class _PromoImage extends StatelessWidget {
-  const _PromoImage({required this.url});
+  const _PromoImage({required this.url, required this.fallbackUrl});
   final String url;
+  final String fallbackUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -342,7 +343,14 @@ class _PromoImage extends StatelessWidget {
           imageUrl: url,
           fit: BoxFit.cover,
           placeholder: (_, _) => placeholder,
-          errorWidget: (_, _, _) => placeholder,
+          // The 1000 px variant may be missing: fall back to the original.
+          errorWidget: (_, _, _) => url == fallbackUrl
+              ? placeholder
+              : CachedNetworkImage(
+                  imageUrl: fallbackUrl,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, _, _) => placeholder,
+                ),
         ),
       ),
     );

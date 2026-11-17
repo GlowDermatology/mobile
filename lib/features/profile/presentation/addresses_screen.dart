@@ -7,10 +7,12 @@ import '../../../app/theme/gd_theme.dart';
 import '../../../core/widgets/gd_widgets.dart';
 import '../../auth/application/session_controller.dart';
 import '../data/addresses_api.dart';
+import 'address_pin_note.dart';
+import 'address_text.dart';
 import 'profile_text.dart';
 import 'profile_widgets.dart';
 
-enum _AddressAction { makeDefault, delete }
+enum _AddressAction { edit, makeDefault, delete }
 
 /// «Manzillarim»: saved delivery addresses (contract §2.2.7).
 class AddressesScreen extends ConsumerStatefulWidget {
@@ -38,7 +40,18 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     }
   }
 
+  /// Edits the address and its map pin (the form pops the saved address).
+  Future<void> _edit(Address a) async {
+    final saved = await context.push<Object?>('/checkout/address?id=${a.id}');
+    if (!mounted) return;
+    _changed();
+    if (saved is Address) {
+      showSnack(context, ProfileText.addressSaved.of(context));
+    }
+  }
+
   Future<void> _act(Address a, _AddressAction action) async {
+    if (action == _AddressAction.edit) return _edit(a);
     if (action == _AddressAction.delete) {
       final ok = await confirmAction(
         context,
@@ -53,6 +66,8 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     final api = ref.read(addressesApiProvider);
     try {
       switch (action) {
+        case _AddressAction.edit:
+          break;
         case _AddressAction.makeDefault:
           await api.makeDefault(a.id);
         case _AddressAction.delete:
@@ -109,6 +124,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
               itemBuilder: (context, i) => AddressTile(
                 address: sorted[i],
                 busy: _busy.contains(sorted[i].id),
+                onEdit: () => _act(sorted[i], _AddressAction.edit),
                 onMakeDefault: () =>
                     _act(sorted[i], _AddressAction.makeDefault),
                 onDelete: () => _act(sorted[i], _AddressAction.delete),
@@ -129,16 +145,19 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
   }
 }
 
-/// Label, text, «Asosiy» badge and a menu (make default · delete).
+/// Label, text, «Asosiy» badge, the map pin note and a menu (edit · make
+/// default · delete).
 class AddressTile extends StatelessWidget {
   const AddressTile({
     super.key,
     required this.address,
     required this.onMakeDefault,
     required this.onDelete,
+    this.onEdit,
     this.busy = false,
   });
   final Address address;
+  final VoidCallback? onEdit;
   final VoidCallback onMakeDefault;
   final VoidCallback onDelete;
   final bool busy;
@@ -195,6 +214,8 @@ class AddressTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(a.comment, style: context.gdText.caption),
                 ],
+                const SizedBox(height: 6),
+                AddressPinNote(address: a),
               ],
             ),
           ),
@@ -214,10 +235,33 @@ class AddressTile extends StatelessWidget {
                 tooltip: ProfileText.addressActions.of(context),
                 icon: Icon(Icons.more_vert_rounded, color: c.inkMuted),
                 color: c.surfaceRaised,
-                onSelected: (v) => v == _AddressAction.makeDefault
-                    ? onMakeDefault()
-                    : onDelete(),
+                onSelected: (v) => switch (v) {
+                  _AddressAction.edit => onEdit?.call(),
+                  _AddressAction.makeDefault => onMakeDefault(),
+                  _AddressAction.delete => onDelete(),
+                },
                 itemBuilder: (context) => [
+                  if (onEdit != null)
+                    PopupMenuItem(
+                      value: _AddressAction.edit,
+                      child: Semantics(
+                        identifier: 'addresses.edit',
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.edit_outlined, size: 20, color: c.ink),
+                            const SizedBox(width: 10),
+                            Flexible(
+                              child: Text(
+                                AddressFormText.edit.of(context),
+                                style: context.gdText.bodyMd,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   if (!a.isDefault)
                     PopupMenuItem(
                       value: _AddressAction.makeDefault,

@@ -114,6 +114,94 @@ test("payment (simulated provider) leads to the success screen and the tracking 
   await expect(sem(`orders.item.${orderId}`)).toBeVisible();
 });
 
+const STAFF = { email: process.env.E2E_STAFF_EMAIL ?? "admin@glowderma.uz", password: process.env.E2E_STAFF_PASSWORD ?? "glowderma-demo-2026" };
+
+async function staff(method, path, data) {
+  const login = await page.request.post(api("admin/auth/login/"), { data: STAFF });
+  const { access } = await login.json();
+  const res = await page.request.fetch(api(path), { method, data, headers: { Authorization: `Bearer ${access}`, "Idempotency-Key": crypto.randomUUID() } });
+  if (!res.ok()) console.log("staff", res.status(), path, await res.text());
+  return res;
+}
+
+async function pickText(text) {
+  await page.getByRole("menuitem", { name: text, exact: true }).click();
+  await settle(800);
+}
+
+async function addProductToCart() {
+  await open(`/product/${productId}`);
+  await sem("product.add").click();
+  await expect(sem("product.go_cart")).toBeVisible();
+}
+
+let yandexOrderId;
+test("delivery: new address with a map pin, then the Yandex Express option", async () => {
+  await addProductToCart();
+  await open("/cart");
+  await sem("cart.pay").click();
+  await expect(sem("checkout.place")).toBeVisible();
+  await sem("checkout.delivery").click();
+  await settle(1500);
+  await sem("checkout.addAddress").click();
+  await expect(sem("address.map")).toBeVisible();
+  await sem("address.region").click();
+  await settle(800);
+  await pickText("Toshkent shahri");
+  await sem("address.city").click();
+  await settle(800);
+  await pickText("Chilonzor tumani");
+  await typeInto("address.text", "Chilonzor 9-kvartal, 12-uy");
+  await sem("address.map.center").click();
+  await settle(800);
+  await shot("18-address-pin");
+  await sem("address.save").click();
+  await expect(sem("checkout.option.yandex.express")).toBeVisible({ timeout: 20_000 });
+  await expect(sem("checkout.option.bts")).toBeVisible();
+  await sem("checkout.option.yandex.express").click();
+  await settle(2500);
+  await shot("19-checkout-yandex");
+  await sem("checkout.place").click();
+  await expect(sem("pay.submit")).toBeVisible();
+  yandexOrderId = await orderNumberOnScreen();
+  await sem("pay.simulate").click();
+  await expect(sem("success.title")).toBeVisible({ timeout: 30_000 });
+});
+
+test("courier tracking: staff dispatch, the fake courier moves, the order shows it", async () => {
+  expect((await staff("POST", `admin/orders/${yandexOrderId}/dispatch/`, { contents_verified: true, weight_g: 400 })).ok()).toBeTruthy();
+  for (const status of ["accepted", "performer_found", "pickuped"]) {
+    await staff("POST", `admin/dev/yandex/${yandexOrderId}/advance/`, { status });
+  }
+  await open(`/orders/${yandexOrderId}`);
+  await expect(sem("order.delivery")).toBeVisible({ timeout: 20_000 });
+  // the fake courier picked the parcel up: its name and the tracking link are shown
+  await expect(page.getByRole("group", { name: /Fake Kuryer/ })).toBeVisible({ timeout: 15_000 });
+  await expect(sem("order.delivery.track")).toBeVisible();
+  await shot("20-order-courier");
+  await open("/orders");
+  await expect(sem(`orders.item.${yandexOrderId}`)).toBeVisible();
+  await shot("21-orders-stage");
+});
+
+test("unpaid order: the cart shows it and edit returns its lines", async () => {
+  await addProductToCart();
+  await open("/cart");
+  await sem("cart.pay").click();
+  await expect(sem("checkout.place")).toBeVisible();
+  await sem("checkout.pickup").click();
+  await settle(2000);
+  await sem("checkout.place").click();
+  await expect(sem("pay.submit")).toBeVisible();
+  await open("/cart");
+  await expect(sem("cart.recovery")).toBeVisible({ timeout: 15_000 });
+  await shot("22-cart-unpaid");
+  await sem("cart.recovery.restore").click();
+  await expect(sem(`cart.line.${productId}.plus`)).toBeVisible({ timeout: 15_000 });
+  await settle(1500);
+  await shot("23-cart-restored");
+});
+
 test("QR code with cashback balance and history", async () => {
   await sem("tab.qr").click({ timeout: 3000 }).catch(() => {});
   await open("/qr");

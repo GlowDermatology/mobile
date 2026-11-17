@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Page;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:glow_derma/app/providers.dart';
 import 'package:glow_derma/app/theme/gd_theme.dart';
@@ -219,6 +220,7 @@ OrderDetail detail(Json j) => OrderDetail.fromJson(j);
 class FakeOrdersApi implements OrdersApi {
   FakeOrdersApi({this.details = const {}, this.pages = const {}});
 
+  /// Mutable so a test can move an order on between two reads.
   final Map<int, OrderDetail> details;
 
   /// scope → pages (1-based list index + 1).
@@ -236,7 +238,10 @@ class FakeOrdersApi implements OrdersApi {
   }
 
   @override
-  Future<OrderDetail> detail(int id) async => details[id]!;
+  Future<OrderDetail> detail(int id) async {
+    detailCalls.add(id);
+    return details[id]!;
+  }
 
   /// Thrown by [pay] when set (e.g. a 409 `payment_in_progress`).
   Object? payError;
@@ -266,9 +271,28 @@ class FakeOrdersApi implements OrdersApi {
     return details[id]!;
   }
 
+  /// (order id, key, cancelUnpaid) of every reorder call.
+  final reorderCalls = <(int, String, bool)>[];
+
+  /// What [reorder] answers (an empty cart by default).
+  Cart? reorderResult;
+
+  /// Thrown by [reorder] when set (e.g. a 409 `cart_full`).
+  Object? reorderError;
+
+  final detailCalls = <int>[];
+
   @override
-  Future<Cart> reorder(int id, {required String idempotencyKey}) async =>
-      Cart.fromJson(const {});
+  Future<Cart> reorder(
+    int id, {
+    required String idempotencyKey,
+    bool cancelUnpaid = false,
+  }) async {
+    reorderCalls.add((id, idempotencyKey, cancelUnpaid));
+    final e = reorderError;
+    if (e != null) throw e;
+    return reorderResult ?? Cart.fromJson(const {});
+  }
 
   @override
   Future<void> simulatePayment(
@@ -305,6 +329,7 @@ Future<void> pumpScreen(
   Widget screen,
   FakeOrdersApi api, {
   double height = 844,
+  List<Override> overrides = const [],
 }) async {
   tester.view.physicalSize = Size(390, height) * 3;
   tester.view.devicePixelRatio = 3;
@@ -315,6 +340,7 @@ Future<void> pumpScreen(
         sessionProvider.overrideWith(_SignedIn.new),
         languageProvider.overrideWith(_Uz.new),
         ordersApiProvider.overrideWithValue(api),
+        ...overrides,
         publicSettingsProvider.overrideWith(
           (ref) async => const PublicSettings({
             'payment_providers': ['click', 'payme'],

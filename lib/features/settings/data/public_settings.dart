@@ -23,6 +23,28 @@ class PublicSettings {
   List<String> get paymentProviders => asStringList(raw['payment_providers']);
   bool get onlineSalesEnabled => raw['online_sales_enabled'] != false;
   List<String> get fulfilmentMethods => asStringList(raw['fulfilment_methods']);
+
+  /// Home-delivery carriers that can take an order now, preferred first
+  /// (`delivery.providers`: `yandex`, `bts`). Unknown values are dropped.
+  List<String> get deliveryProviders {
+    final list = asStringList(asJson(raw['delivery'])['providers']);
+    return <String>{
+      for (final p in list)
+        if (p == 'yandex' || p == 'bts') p,
+    }.toList();
+  }
+
+  /// What the checkout offers, delivery first. `fulfilment_methods` still
+  /// means BTS only, so delivery is also offered when any carrier is listed
+  /// (a Yandex-only deployment).
+  List<String> get offeredFulfilments {
+    final methods = fulfilmentMethods;
+    return [
+      if (methods.contains('delivery') || deliveryProviders.isNotEmpty)
+        'delivery',
+      if (methods.contains('pickup')) 'pickup',
+    ];
+  }
 }
 
 /// Cached for the app session; re-read when the language changes.

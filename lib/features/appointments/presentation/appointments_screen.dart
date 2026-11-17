@@ -208,6 +208,7 @@ class AppointmentCard extends StatelessWidget {
                 SpecialistAvatar(
                   name: a.specialist.name,
                   photoUrl: a.specialist.photoUrl,
+                  photoThumbUrl: a.specialist.photoThumbUrl,
                   size: 44,
                 ),
                 const SizedBox(width: 12),

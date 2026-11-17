@@ -15,6 +15,7 @@ class Me {
     required this.currentTermsVersion,
     required this.consentUpdateRequired,
     required this.registeredAt,
+    this.imageThumbnailUrl,
   });
 
   factory Me.fromJson(Json j) {
@@ -32,6 +33,7 @@ class Me {
       currentTermsVersion: asStringOrNull(consent['current_version']),
       consentUpdateRequired: asBool(consent['update_required']),
       registeredAt: asDate(j['registered_at']),
+      imageThumbnailUrl: asStringOrNull(j['image_thumbnail_url']),
     );
   }
 
@@ -41,6 +43,10 @@ class Me {
   final String name;
   final String language;
   final String? imageUrl;
+
+  /// 400 px variant (null → the original).
+  final String? imageThumbnailUrl;
+  String? get imageThumbUrl => imageThumbnailUrl ?? imageUrl;
   final bool hasPassword;
   final bool pushEnabled;
   final String? termsVersion;
