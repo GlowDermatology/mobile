@@ -12,17 +12,59 @@ void main() {
           useCashback: true,
           cashbackAvailable: 48600,
         ),
-        {'fulfilment': 'delivery', 'address_id': 12, 'cashback_to_use': 48600},
+        {
+          'fulfilment': 'delivery',
+          'address_id': 12,
+          'cashback_to_use': 48600,
+          'with_options': true,
+        },
       );
     });
 
-    test('pickup never sends an address; switch off sends 0', () {
+    test('delivery passes the preferred carrier (method for Yandex only)', () {
+      expect(
+        buildCalculateBody(
+          fulfilment: 'delivery',
+          addressId: 12,
+          useCashback: false,
+          cashbackAvailable: 0,
+          preferred: (provider: 'yandex', method: 'express'),
+        ),
+        {
+          'fulfilment': 'delivery',
+          'address_id': 12,
+          'cashback_to_use': 0,
+          'with_options': true,
+          'delivery_provider': 'yandex',
+          'delivery_method': 'express',
+        },
+      );
+      expect(
+        buildCalculateBody(
+          fulfilment: 'delivery',
+          addressId: 12,
+          useCashback: false,
+          cashbackAvailable: 0,
+          preferred: (provider: 'bts', method: null),
+        ),
+        {
+          'fulfilment': 'delivery',
+          'address_id': 12,
+          'cashback_to_use': 0,
+          'with_options': true,
+          'delivery_provider': 'bts',
+        },
+      );
+    });
+
+    test('pickup never sends an address or a carrier; switch off sends 0', () {
       expect(
         buildCalculateBody(
           fulfilment: 'pickup',
           addressId: 12,
           useCashback: false,
           cashbackAvailable: 48600,
+          preferred: (provider: 'yandex', method: 'express'),
         ),
         {'fulfilment': 'pickup', 'address_id': null, 'cashback_to_use': 0},
       );

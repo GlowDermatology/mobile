@@ -11,15 +11,11 @@ abstract final class CheckoutText {
     'Способ получения',
     'How you get it',
   );
-  static const delivery = Tr(
-    'BTS orqali yetkazib berish',
-    'Доставка через BTS',
-    'Delivery by BTS',
-  );
+  static const delivery = Tr('Yetkazib berish', 'Доставка', 'Delivery');
   static const deliveryHint = Tr(
-    'BTS kuryeri manzilingizga olib boradi',
-    'Курьер BTS привезёт по адресу',
-    'A BTS courier brings it to your address',
+    'Narx va muddat manzilga qarab',
+    'Цена и срок зависят от адреса',
+    'Price and timing depend on the address',
   );
   static const pickup = Tr(
     'Do‘kondan olib ketish',
@@ -114,6 +110,32 @@ abstract final class CheckoutText {
     'Place order',
   );
 
+  static const confirmNewPrice = Tr(
+    'Yangi narx bilan buyurtma berish',
+    'Оформить по новой цене',
+    'Place order at the new price',
+  );
+  static const priceChanged = Tr(
+    'Narxlar yangilandi. Yangi summani tekshirib, qaytadan tasdiqlang.',
+    'Цены обновились. Проверьте новую сумму и подтвердите ещё раз.',
+    'Prices were updated. Please check the new total and confirm again.',
+  );
+  static const deliveryPriceChanged = Tr(
+    'Yetkazib berish narxi o‘zgardi: endi {to} (avval {from}). Yangi narxni tekshirib, qaytadan tasdiqlang.',
+    'Стоимость доставки изменилась: теперь {to} (было {from}). Проверьте новую цену и подтвердите ещё раз.',
+    'The delivery price changed: now {to} (was {from}). Please check it and confirm again.',
+  );
+  static const optionReplaced = Tr(
+    'Tanlangan usul hozir mavjud emas, uning o‘rniga «{label}» tanlandi. Tekshirib, qaytadan tasdiqlang.',
+    'Выбранный способ сейчас недоступен, вместо него выбран «{label}». Проверьте и подтвердите ещё раз.',
+    'The option you chose is not available right now, so “{label}” is selected instead. Please check and confirm again.',
+  );
+  static const quoteExpired = Tr(
+    'Yetkazib berish narxining muddati tugadi va u qayta hisoblandi. Tekshirib, qaytadan tasdiqlang.',
+    'Срок действия стоимости доставки истёк, мы пересчитали её. Проверьте и подтвердите ещё раз.',
+    'The delivery price had expired and was calculated again. Please check it and confirm again.',
+  );
+
   static const outOfStockTitle = Tr(
     'Ba’zi mahsulotlar yetarli emas',
     'Некоторых товаров не хватает',
@@ -195,4 +217,98 @@ abstract final class CheckoutText {
     'Доставка пока недоступна. Выберите самовывоз.',
     'Delivery is not available yet. Choose pick-up.',
   );
+}
+
+/// The delivery options of checkout (website copy `delivery`).
+abstract final class DeliveryText {
+  static const title = Tr(
+    'Yetkazib berish usuli',
+    'Способ доставки',
+    'Delivery option',
+  );
+  static const loading = Tr(
+    'Yetkazib berish narxlari hisoblanmoqda…',
+    'Считаем стоимость доставки…',
+    'Calculating delivery prices…',
+  );
+  static const free = Tr('Bepul', 'Бесплатно', 'Free');
+  static const eta = Tr(
+    'Yetkazib berish: {window}',
+    'Доставка: {window}',
+    'Delivery: {window}',
+  );
+  static const scheduled = Tr(
+    'Ombor ochilgach jo‘natiladi',
+    'Отправим, как только откроется склад',
+    'Ships as soon as the warehouse opens',
+  );
+  static const today = Tr('Bugun', 'Сегодня', 'Today');
+  static const tomorrow = Tr('Ertaga', 'Завтра', 'Tomorrow');
+  static const unavailable = Tr('Mavjud emas', 'Недоступно', 'Unavailable');
+  static const addPin = Tr(
+    'Xaritada belgilash',
+    'Отметить на карте',
+    'Pin it on the map',
+  );
+  static const editAddress = Tr(
+    'Manzilni tahrirlash',
+    'Изменить адрес',
+    'Edit the address',
+  );
+  static const retry = Tr('Qayta hisoblash', 'Пересчитать', 'Recalculate');
+  static const none = Tr(
+    'Bu manzilga hozir yetkazib bera olmaymiz. Boshqa manzilni yoki olib ketishni tanlang.',
+    'Сейчас мы не можем доставить по этому адресу. Выберите другой адрес или самовывоз.',
+    'We can’t deliver to this address right now. Choose another address or pick up in store.',
+  );
+
+  static const _notConfigured = Tr(
+    'Bu usul hozircha mavjud emas.',
+    'Этот способ пока недоступен.',
+    'This option is not available yet.',
+  );
+
+  /// `DeliveryUnavailableReason` texts, plus `region_required`.
+  static const reasons = <String, Tr>{
+    'coordinates_required': Tr(
+      'Kuryer uchun manzil xaritada belgilanmagan.',
+      'Адрес не отмечен на карте — курьеру нужна точка.',
+      'The address is not pinned on the map, which the courier needs.',
+    ),
+    'provider_unavailable': Tr(
+      'Yetkazib berish xizmati hozir javob bermayapti.',
+      'Служба доставки сейчас не отвечает.',
+      'The delivery service is not responding right now.',
+    ),
+    'out_of_zone': Tr(
+      'Bu manzil yetkazib berish hududidan tashqarida.',
+      'Адрес вне зоны доставки.',
+      'This address is outside the delivery area.',
+    ),
+    'method_disabled': _notConfigured,
+    'too_heavy': Tr(
+      'Buyurtma bu usul uchun juda og‘ir.',
+      'Заказ слишком тяжёлый для этого способа.',
+      'The order is too heavy for this option.',
+    ),
+    'warehouse_closed': Tr(
+      'Ombor yopiq: yaqin kunlarda jo‘natib bo‘lmaydi.',
+      'Склад закрыт: в ближайшие дни отправить не получится.',
+      'The warehouse is closed: nothing can ship in the coming days.',
+    ),
+    'dispatch_suspended': Tr(
+      'Kuryer orqali yetkazib berish vaqtincha to‘xtatilgan.',
+      'Курьерская доставка временно приостановлена.',
+      'Courier delivery is paused for now.',
+    ),
+    'not_configured': _notConfigured,
+    'region_required': Tr(
+      'Pochta uchun manzilda viloyat va tuman tanlanmagan.',
+      'Для почты в адресе не выбраны область и район.',
+      'Post delivery needs the region and district in the address.',
+    ),
+  };
+
+  /// The text of an unavailable reason (unknown codes read as not configured).
+  static Tr reason(String code) => reasons[code] ?? _notConfigured;
 }
