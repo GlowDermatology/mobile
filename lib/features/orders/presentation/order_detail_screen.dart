@@ -56,6 +56,13 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
         _syncRefresh();
       },
     );
+    // Another screen (payment success, the list's previous visit) may still
+    // hold this order: show it, but read it again once on open.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && ref.read(orderDetailProvider(_id)).hasValue) {
+        unawaited(_refresh());
+      }
+    });
   }
 
   @override
