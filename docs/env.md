@@ -10,6 +10,7 @@
 | `E2E` | `false` | semantics tree on, for the Playwright harness |
 | `PLATFORM_OVERRIDE` | empty | `android`/`ios`; the web preview needs `android` |
 | `WEBSITE_URL` | `https://glowderma.uz` | public website |
+| `MAP_TILE_URL` | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | map tiles of the address pin picker; OpenStreetMap's public server is fine for low volume, set a tile provider here for more |
 
 Presets: `production`, `staging`, `local-phone` (edit the LAN IP), `local-emulator`, `local-web`. None holds a secret.
 
@@ -29,6 +30,8 @@ Nothing below had to change for this app; these are the go-live switches (see se
 | `PAYME_MODE=live`, `PAYME_MERCHANT_ID` / `PAYME_KEY` | backend.env / Vault | Payme payments |
 | `MIN_APP_VERSION_IOS`, `MIN_APP_VERSION_ANDROID`, `APP_STORE_URL`, `PLAY_STORE_URL` | backend.env | forced updates and store links |
 | `PAYMENT_RETURN_URL` | compose (derived from `SITE_DOMAIN`) | where Click/Payme send app payers: `https://<domain>/pay/return` |
+| `YANDEX_DELIVERY_MODE=live` / `YANDEX_DELIVERY_TOKEN` | backend.env / Vault | Yandex courier delivery (also needs the warehouse, methods and opening hours on the ops console's delivery settings page) |
+| `YANDEX_DELIVERY_PILOT_CUSTOMER_IDS` | backend.env | optional: offer Yandex to these customer ids only |
 
 `ANDROID_SMS_APP_HASH` is not used by this app (it relies on the system's one-time-code autofill); leave it unset.
 

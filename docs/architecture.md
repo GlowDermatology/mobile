@@ -33,6 +33,33 @@ presentation (screens, widgets)  ─ watches ─▶  application (Riverpod notif
   user intent, reused on retries).
 - Errors become `ApiException` (code, localized message, field errors, details); screens branch on the code.
 
+## Delivery (Yandex courier, BTS post)
+
+`settings/public/` lists the carriers (`delivery.providers`); delivery is offered when any is listed. With
+delivery selected, checkout asks `delivery/calculate/` **with options** and shows one card per carrier and method
+(Yandex Standard, Yandex Express, BTS) with the server's label, price, delivery window and, for a refused option,
+the reason and what to do (add the map pin, complete the address, try again). A Yandex price is a **quote** valid
+for 15 minutes: checkout sends its `delivery_quote_id`, the app re-quotes silently when it runs out (measured on the
+server's clock) and asks the customer to confirm whenever the fee or total changed. A refused checkout
+(`quote_expired`, a delivery `price_changed`, `delivery_unavailable`) is handled the same way. The decisions are pure
+functions in `lib/features/checkout/application/delivery_flow.dart`, ported from the website's `delivery-flow.ts`.
+
+Yandex needs the address's **map pin**. The address form has an OpenStreetMap map (`flutter_map`, tiles from
+`MAP_TILE_URL`): tap or drag to set the pin, "my location" through `geolocator` (optional permission), or pin the map
+centre. An order shipped by Yandex shows its courier stage, expected window, courier and Yandex's tracking page,
+re-reading itself every 30 s while the parcel moves.
+
+## Unpaid orders
+
+The cart answer carries the customer's unpaid (or just expired) checkout. The cart shows it on top: continue
+payment, or edit it (`reorder` with `cancel_unpaid`: the order is cancelled and its lines return to the cart). A new
+checkout waits until it is resolved.
+
+## Images
+
+Lists and rows load the 400 px variants, cards, banners and the product gallery the 1000 px ones; each falls back to
+the original when a variant is missing (`GdImage.fallbackUrl`).
+
 ## Payments
 
 Checkout creates the order (stock reserved for `reservation_minutes`), the payment screen asks the API for the
@@ -67,3 +94,5 @@ errors, ledger lines) are shown as they come, in the language sent in `Accept-La
 | Cart checkboxes remove selected lines | the API always checks out the whole cart |
 | "Mashhur mahsulotlar" = promo products, then newest | the API has no popularity ordering |
 | No cash payment | the API offers Click and Payme only; the row is shown disabled ("Tez orada") |
+| OpenStreetMap tiles, no geocoding | no API key needed, same as the website; a paid tile provider can be set with `MAP_TILE_URL` |
+| The app never adds up a delivery fee | every price and total comes from the server's quote |
