@@ -143,7 +143,12 @@ class SpecialistCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                SpecialistAvatar(name: s.name, photoUrl: s.photoUrl, size: 58),
+                SpecialistAvatar(
+                  name: s.name,
+                  photoUrl: s.photoUrl,
+                  photoThumbUrl: s.photoThumbUrl,
+                  size: 58,
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(

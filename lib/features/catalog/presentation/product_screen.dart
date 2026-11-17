@@ -373,7 +373,7 @@ class _HeroState extends State<_Hero> {
   Widget build(BuildContext context) {
     final c = context.gd;
     final p = widget.product;
-    final urls = p.galleryUrls;
+    final urls = p.gallery;
     final top = MediaQuery.paddingOf(context).top;
     final width = MediaQuery.sizeOf(context).width;
     final height = top + (width * 0.9).clamp(300.0, 420.0);
@@ -410,7 +410,8 @@ class _HeroState extends State<_Hero> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 48),
                           child: GdImage(
-                            url: urls[i],
+                            url: urls[i].url,
+                            fallbackUrl: urls[i].original,
                             seed: p.card.artSeed,
                             fit: BoxFit.contain,
                             radius: 16,

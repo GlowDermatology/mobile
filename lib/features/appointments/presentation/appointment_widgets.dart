@@ -45,15 +45,23 @@ class SpecialistAvatar extends StatelessWidget {
     super.key,
     required this.name,
     this.photoUrl,
+    this.photoThumbUrl,
     this.size = 56,
   });
   final String name;
+
+  /// The original photo, and its 400 px variant to show first.
   final String? photoUrl;
+  final String? photoThumbUrl;
   final double size;
 
   @override
-  Widget build(BuildContext context) =>
-      GdAvatar(initials: initialsOf(name), imageUrl: photoUrl, size: size);
+  Widget build(BuildContext context) => GdAvatar(
+    initials: initialsOf(name),
+    imageUrl: photoThumbUrl ?? photoUrl,
+    fallbackUrl: photoUrl,
+    size: size,
+  );
 }
 
 /// Small rounded chip of the specialists cards ("● Du, 26-oktabr · 09:00").

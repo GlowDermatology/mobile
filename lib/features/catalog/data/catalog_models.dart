@@ -22,12 +22,14 @@ class CatalogCategory {
     required this.name,
     required this.imageUrl,
     required this.productCount,
+    this.imageThumbnailUrl,
   });
 
   factory CatalogCategory.fromJson(Json j) => CatalogCategory(
     slug: asString(j['slug']),
     name: asString(j['name']),
     imageUrl: asStringOrNull(j['image_url']),
+    imageThumbnailUrl: asStringOrNull(j['image_thumbnail_url']),
     productCount: asInt(j['product_count']),
   );
 
@@ -35,6 +37,10 @@ class CatalogCategory {
   final String name;
   final String? imageUrl;
   final int productCount;
+
+  /// 400 px variant (null → the original).
+  final String? imageThumbnailUrl;
+  String? get thumbUrl => imageThumbnailUrl ?? imageUrl;
 }
 
 enum StockStatus { inStock, outOfStock }
@@ -60,6 +66,8 @@ class ProductCard {
     required this.available,
     required this.stockStatus,
     required this.inCartQuantity,
+    this.mainImageThumbnailUrl,
+    this.mainImageMediumUrl,
   });
 
   factory ProductCard.fromJson(Json j) {
@@ -74,6 +82,8 @@ class ProductCard {
       promo: asBool(j['promo']),
       category: category is Map ? CategoryRef.fromJson(asJson(category)) : null,
       mainImageUrl: asStringOrNull(j['main_image_url']),
+      mainImageThumbnailUrl: asStringOrNull(j['main_image_thumbnail_url']),
+      mainImageMediumUrl: asStringOrNull(j['main_image_medium_url']),
       available: available,
       stockStatus: _stock(j['stock_status'], available),
       inCartQuantity: asInt(j['in_cart_quantity']),
@@ -88,6 +98,12 @@ class ProductCard {
   final bool promo;
   final CategoryRef? category;
   final String? mainImageUrl;
+
+  /// 400 px / 1000 px variants (null → the original).
+  final String? mainImageThumbnailUrl;
+  final String? mainImageMediumUrl;
+  String? get thumbUrl => mainImageThumbnailUrl ?? mainImageUrl;
+  String? get mediumUrl => mainImageMediumUrl ?? mainImageUrl;
   final int available;
   final StockStatus stockStatus;
   final int inCartQuantity;
@@ -110,18 +126,28 @@ class ProductImage {
     required this.id,
     required this.url,
     required this.position,
+    this.thumbnailUrl,
+    this.mediumUrl,
   });
 
   factory ProductImage.fromJson(Json j) => ProductImage(
     id: asInt(j['id']),
     url: asString(j['url']),
     position: asInt(j['position']),
+    thumbnailUrl: asStringOrNull(j['thumbnail_url']),
+    mediumUrl: asStringOrNull(j['medium_url']),
   );
 
   final int id;
   final String url;
   final int position;
+  final String? thumbnailUrl;
+  final String? mediumUrl;
 }
+
+/// One gallery page: the 1000 px variant to show and the original to fall
+/// back to.
+typedef GalleryImage = ({String url, String original});
 
 /// `ProductDetail` = card + texts, gallery and `max_quantity`.
 @immutable
@@ -168,6 +194,22 @@ class ProductDetail {
     if (images.isNotEmpty) return [for (final i in images) i.url];
     final main = card.mainImageUrl;
     return main == null || main.isEmpty ? const [] : [main];
+  }
+
+  /// The gallery as 1000 px pages with their originals as fallbacks.
+  List<GalleryImage> get gallery {
+    if (images.isNotEmpty) {
+      return [
+        for (final i in images)
+          (
+            url: (i.mediumUrl?.isNotEmpty ?? false) ? i.mediumUrl! : i.url,
+            original: i.url,
+          ),
+      ];
+    }
+    final main = card.mainImageUrl;
+    if (main == null || main.isEmpty) return const [];
+    return [(url: card.mediumUrl ?? main, original: main)];
   }
 
   bool get canAdd => maxQuantity > 0 && card.inStock;
@@ -241,12 +283,14 @@ class CatalogBanner {
     required this.imageWidth,
     required this.imageHeight,
     required this.link,
+    this.imageMediumUrl,
   });
 
   factory CatalogBanner.fromJson(Json j) => CatalogBanner(
     id: asInt(j['id']),
     title: asString(j['title']),
     imageUrl: asStringOrNull(j['image_url']),
+    imageMediumUrl: asStringOrNull(j['image_medium_url']),
     imageWidth: asIntOrNull(j['image_width']),
     imageHeight: asIntOrNull(j['image_height']),
     link: j['link'] is Map
@@ -262,6 +306,10 @@ class CatalogBanner {
   final BannerLink link;
 
   bool get hasImage => imageUrl != null && imageUrl!.isNotEmpty;
+
+  /// 1000 px variant (null → the original).
+  final String? imageMediumUrl;
+  String? get mediumUrl => imageMediumUrl ?? imageUrl;
 }
 
 /// `ordering` of `GET catalog/products/`.

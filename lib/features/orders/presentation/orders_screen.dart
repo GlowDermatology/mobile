@@ -210,12 +210,13 @@ class OrderCard extends StatelessWidget {
             const SizedBox(height: 14),
             Row(
               children: [
-                for (final url in order.previewImages.take(3)) ...[
+                for (final tile in order.previewTiles.take(3)) ...[
                   SizedBox.square(
                     dimension: 46,
                     child: GdImage(
-                      url: url,
-                      seed: url,
+                      url: tile.url,
+                      fallbackUrl: tile.original,
+                      seed: tile.original,
                       radius: GdRadius.sm,
                       artSize: 28,
                     ),

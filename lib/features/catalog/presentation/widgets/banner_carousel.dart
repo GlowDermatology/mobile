@@ -115,10 +115,17 @@ class _BannerSlide extends StatelessWidget {
             children: [
               if (banner.hasImage) ...[
                 CachedNetworkImage(
-                  imageUrl: banner.imageUrl!,
+                  imageUrl: banner.mediumUrl!,
                   fit: BoxFit.cover,
                   placeholder: (_, _) => ColoredBox(color: c.banner),
-                  errorWidget: (_, _, _) => const _RingsArt(),
+                  // The 1000 px variant may be missing: fall back to the original.
+                  errorWidget: (_, _, _) => banner.mediumUrl == banner.imageUrl
+                      ? const _RingsArt()
+                      : CachedNetworkImage(
+                          imageUrl: banner.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, _, _) => const _RingsArt(),
+                        ),
                 ),
                 const DecoratedBox(
                   decoration: BoxDecoration(

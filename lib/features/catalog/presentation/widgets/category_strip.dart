@@ -52,7 +52,8 @@ class CategoryStrip extends StatelessWidget {
             selected: selected == cat.slug,
             onTap: () => onSelect(cat),
             child: GdImage(
-              url: cat.imageUrl,
+              url: cat.thumbUrl,
+              fallbackUrl: cat.imageUrl,
               seed: cat.slug,
               radius: 33,
               artSize: 34,

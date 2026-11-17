@@ -586,12 +586,18 @@ class _CartLineCard extends StatelessWidget {
                           0, 0, 0, 0.7, 0,
                         ]),
                         child: GdImage(
-                          url: line.imageUrl,
+                          url: line.thumbUrl,
+                          fallbackUrl: line.imageUrl,
                           seed: line.name,
                           artSize: 48,
                         ),
                       )
-                    : GdImage(url: line.imageUrl, seed: line.name, artSize: 48),
+                    : GdImage(
+                        url: line.thumbUrl,
+                        fallbackUrl: line.imageUrl,
+                        seed: line.name,
+                        artSize: 48,
+                      ),
               ),
             ),
             const SizedBox(width: 12),

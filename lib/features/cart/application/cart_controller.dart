@@ -112,7 +112,7 @@ final cartProvider = AsyncNotifierProvider<CartController, Cart>(
   CartController.new,
 );
 
-/// Tab badge: number of lines.
+/// Tab badge: the cart's lines plus those held by an unpaid order.
 final cartBadgeProvider = Provider<int>(
-  (ref) => ref.watch(cartProvider).value?.itemCount ?? 0,
+  (ref) => ref.watch(cartProvider).value?.badgeCount ?? 0,
 );

@@ -57,6 +57,7 @@ class Specialist {
     required this.role,
     required this.roleLabel,
     this.photoUrl,
+    this.photoThumbnailUrl,
     this.bio = '',
     this.qualifications = '',
     this.experienceYears,
@@ -71,6 +72,7 @@ class Specialist {
     role: asString(json['role']),
     roleLabel: asString(json['role_label']),
     photoUrl: asStringOrNull(json['photo_url']),
+    photoThumbnailUrl: asStringOrNull(json['photo_thumbnail_url']),
     bio: asString(json['bio']),
     qualifications: asString(json['qualifications']),
     experienceYears: asIntOrNull(json['experience_years']),
@@ -90,6 +92,10 @@ class Specialist {
   final String role;
   final String roleLabel;
   final String? photoUrl;
+
+  /// 400 px variant (null → the original).
+  final String? photoThumbnailUrl;
+  String? get photoThumbUrl => photoThumbnailUrl ?? photoUrl;
   final String bio;
   final String qualifications;
   final int? experienceYears;
@@ -263,6 +269,7 @@ class AppointmentSpecialist {
     required this.name,
     required this.roleLabel,
     this.photoUrl,
+    this.photoThumbnailUrl,
   });
 
   factory AppointmentSpecialist.fromJson(Json json) => AppointmentSpecialist(
@@ -270,12 +277,17 @@ class AppointmentSpecialist {
     name: asString(json['name']),
     roleLabel: asString(json['role_label']),
     photoUrl: asStringOrNull(json['photo_url']),
+    photoThumbnailUrl: asStringOrNull(json['photo_thumbnail_url']),
   );
 
   final int id;
   final String name;
   final String roleLabel;
   final String? photoUrl;
+
+  /// 400 px variant (null → the original).
+  final String? photoThumbnailUrl;
+  String? get photoThumbUrl => photoThumbnailUrl ?? photoUrl;
 }
 
 /// `Appointment` (contract §2.11).

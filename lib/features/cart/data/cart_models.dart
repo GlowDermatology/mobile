@@ -1,4 +1,5 @@
 import '../../../core/network/json.dart';
+import '../../orders/data/order_models.dart';
 
 /// `CartLineStatus` (contract §2.5).
 enum CartLineStatus { ok, insufficient, outOfStock, unavailable }
@@ -26,6 +27,7 @@ class CartLine {
     required this.status,
     required this.priceChanged,
     required this.previousPrice,
+    this.imageThumbnailUrl,
   });
 
   factory CartLine.fromJson(Json j) => CartLine(
@@ -33,6 +35,7 @@ class CartLine {
     name: asString(j['name']),
     volume: asString(j['volume']),
     imageUrl: asStringOrNull(j['main_image_url']),
+    imageThumbnailUrl: asStringOrNull(j['main_image_thumbnail_url']),
     unitPrice: asInt(j['unit_price']),
     promo: asBool(j['promo']),
     quantity: asInt(j['quantity'], 1),
@@ -49,6 +52,10 @@ class CartLine {
   final String name;
   final String volume;
   final String? imageUrl;
+
+  /// 400 px variant (null → the original).
+  final String? imageThumbnailUrl;
+  String? get thumbUrl => imageThumbnailUrl ?? imageUrl;
   final int unitPrice;
   final bool promo;
   final int quantity;
@@ -65,6 +72,7 @@ class CartLine {
     name: name,
     volume: volume,
     imageUrl: imageUrl,
+    imageThumbnailUrl: imageThumbnailUrl,
     unitPrice: unitPrice,
     promo: promo,
     quantity: q,
@@ -89,6 +97,7 @@ class Cart {
     required this.cashbackAvailable,
     required this.maxUsablePickup,
     this.lastChangeMaxReached = false,
+    this.checkoutOrder,
   });
 
   factory Cart.fromJson(Json j) {
@@ -104,6 +113,9 @@ class Cart {
       cashbackAvailable: asInt(cashback['available']),
       maxUsablePickup: asInt(cashback['max_usable_pickup']),
       lastChangeMaxReached: asBool(change['max_reached']),
+      checkoutOrder: j['checkout_order'] is Map
+          ? OrderDetail.fromJson(asJson(j['checkout_order']))
+          : null,
     );
   }
 
@@ -134,6 +146,20 @@ class Cart {
   /// The last write was clamped to the stock / per-line limit.
   final bool lastChangeMaxReached;
 
+  /// The customer's newest unpaid order, or the last checkout that expired or
+  /// was cancelled before payment (contract: cart recovery). Its lines are no
+  /// longer in [items]: they come back with `reorder {cancel_unpaid: true}`.
+  final OrderDetail? checkoutOrder;
+
+  /// An order is waiting for payment: a new checkout is blocked until it is
+  /// paid or edited.
+  bool get hasUnpaidOrder =>
+      checkoutOrder?.status == OrderStatus.awaitingPayment;
+
+  /// Tab badge: the cart's lines plus the lines held by an unpaid order.
+  int get badgeCount =>
+      itemCount + (hasUnpaidOrder ? checkoutOrder!.items.length : 0);
+
   int quantityOf(int productId) {
     for (final l in items) {
       if (l.productId == productId) return l.quantity;
@@ -162,6 +188,7 @@ class Cart {
       hasProblems: hasProblems,
       cashbackAvailable: cashbackAvailable,
       maxUsablePickup: maxUsablePickup,
+      checkoutOrder: checkoutOrder,
     );
   }
 }

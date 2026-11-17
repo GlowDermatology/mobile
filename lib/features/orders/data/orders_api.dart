@@ -49,15 +49,22 @@ class OrdersApi {
         ),
       );
 
-  Future<Cart> reorder(int id, {required String idempotencyKey}) async =>
-      Cart.fromJson(
-        asJson(
-          await _api.post(
-            'orders/$id/reorder/',
-            idempotencyKey: idempotencyKey,
-          ),
-        ),
-      );
+  /// Copies the order's lines back into the cart. With [cancelUnpaid] an
+  /// unpaid order is cancelled first (its stock and cashback released) and
+  /// its lines are merged in atomically ("edit the unpaid order").
+  Future<Cart> reorder(
+    int id, {
+    required String idempotencyKey,
+    bool cancelUnpaid = false,
+  }) async => Cart.fromJson(
+    asJson(
+      await _api.post(
+        'orders/$id/reorder/',
+        body: {'cancel_unpaid': cancelUnpaid},
+        idempotencyKey: idempotencyKey,
+      ),
+    ),
+  );
 
   /// Local/test backends only (`AppConfig.allowDevTools`).
   Future<void> simulatePayment(

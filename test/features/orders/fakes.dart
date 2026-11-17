@@ -267,8 +267,11 @@ class FakeOrdersApi implements OrdersApi {
   }
 
   @override
-  Future<Cart> reorder(int id, {required String idempotencyKey}) async =>
-      Cart.fromJson(const {});
+  Future<Cart> reorder(
+    int id, {
+    required String idempotencyKey,
+    bool cancelUnpaid = false,
+  }) async => Cart.fromJson(const {});
 
   @override
   Future<void> simulatePayment(

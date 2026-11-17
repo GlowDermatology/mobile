@@ -285,7 +285,12 @@ class OrderItemRow extends StatelessWidget {
         children: [
           SizedBox.square(
             dimension: 52,
-            child: GdImage(url: item.imageUrl, seed: item.name, artSize: 34),
+            child: GdImage(
+              url: item.thumbUrl,
+              fallbackUrl: item.imageUrl,
+              seed: item.name,
+              artSize: 34,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(

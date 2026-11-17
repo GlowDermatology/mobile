@@ -385,16 +385,22 @@ class GdStatusChip extends StatelessWidget {
 
 /// Network image with the design's beige "image well" and an illustrated
 /// fallback when there is no photo.
+///
+/// [url] is usually a resized variant (400 px thumbnail or 1000 px medium,
+/// contract "image variants"); [fallbackUrl] is the original,
+/// loaded when the variant fails (variants of old snapshots may not exist).
 class GdImage extends StatelessWidget {
   const GdImage({
     super.key,
     required this.url,
+    this.fallbackUrl,
     this.seed = '',
     this.radius = GdRadius.md,
     this.fit = BoxFit.cover,
     this.artSize = 64,
   });
   final String? url;
+  final String? fallbackUrl;
   final String seed;
   final double radius;
   final BoxFit fit;
@@ -403,63 +409,86 @@ class GdImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.gd;
-    final fallback = Center(
+    final art = Center(
       child: ProductArt(kind: artKindFor(seed), size: artSize),
     );
+    Widget network(String src, Widget onError) => CachedNetworkImage(
+      imageUrl: src,
+      fit: fit,
+      width: double.infinity,
+      height: double.infinity,
+      fadeInDuration: const Duration(milliseconds: 150),
+      placeholder: (_, _) => ColoredBox(color: c.imageWell),
+      errorWidget: (_, _, _) => onError,
+    );
+    final primary = _nonEmpty(url) ?? _nonEmpty(fallbackUrl);
+    final secondary = _nonEmpty(fallbackUrl);
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: ColoredBox(
         color: c.goldSoft,
-        child: url == null || url!.isEmpty
-            ? fallback
-            : CachedNetworkImage(
-                imageUrl: url!,
-                fit: fit,
-                width: double.infinity,
-                height: double.infinity,
-                fadeInDuration: const Duration(milliseconds: 150),
-                placeholder: (_, _) => ColoredBox(color: c.imageWell),
-                errorWidget: (_, _, _) => fallback,
+        child: primary == null
+            ? art
+            : network(
+                primary,
+                secondary != null && secondary != primary
+                    ? network(secondary, art)
+                    : art,
               ),
       ),
     );
   }
 }
 
-/// Initials avatar ("MK").
+String? _nonEmpty(String? s) => s == null || s.isEmpty ? null : s;
+
+/// Initials avatar ("MK"). [imageUrl] is usually the 400 px variant and
+/// [fallbackUrl] the original.
 class GdAvatar extends StatelessWidget {
   const GdAvatar({
     super.key,
     required this.initials,
     this.size = 56,
     this.imageUrl,
+    this.fallbackUrl,
   });
   final String initials;
   final double size;
   final String? imageUrl;
+  final String? fallbackUrl;
 
   @override
   Widget build(BuildContext context) {
     final c = context.gd;
+    final text = Text(
+      initials,
+      style: context.gdText.heading.copyWith(
+        fontSize: size * 0.34,
+        color: c.ink,
+      ),
+    );
+    Widget network(String src, Widget onError) => CachedNetworkImage(
+      imageUrl: src,
+      fit: BoxFit.cover,
+      width: size,
+      height: size,
+      errorWidget: (_, _, _) => onError,
+    );
+    final primary = _nonEmpty(imageUrl) ?? _nonEmpty(fallbackUrl);
+    final secondary = _nonEmpty(fallbackUrl);
     return Container(
       width: size,
       height: size,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(color: c.goldSoft, shape: BoxShape.circle),
       alignment: Alignment.center,
-      child: imageUrl != null && imageUrl!.isNotEmpty
-          ? CachedNetworkImage(
-              imageUrl: imageUrl!,
-              fit: BoxFit.cover,
-              width: size,
-              height: size,
-            )
-          : Text(
-              initials,
-              style: context.gdText.heading.copyWith(
-                fontSize: size * 0.34,
-                color: c.ink,
-              ),
+      child: primary == null
+          ? text
+          : network(
+              primary,
+              secondary != null && secondary != primary
+                  ? network(secondary, text)
+                  : text,
             ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/format/geo.dart';
 import '../../../core/network/json.dart';
 import '../../auth/application/session_controller.dart';
 
@@ -16,6 +17,7 @@ class Address {
     required this.cityCode,
     required this.comment,
     required this.isDefault,
+    this.pin,
   });
 
   factory Address.fromJson(Json j) => Address(
@@ -26,6 +28,7 @@ class Address {
     cityCode: asString(j['city_code']),
     comment: asString(j['comment']),
     isDefault: asBool(j['is_default']),
+    pin: toPin(j['latitude'], j['longitude']),
   );
 
   final int id;
@@ -36,8 +39,20 @@ class Address {
   final String comment;
   final bool isDefault;
 
+  /// The delivery point on the map. A courier service (Yandex) needs it;
+  /// without it its options come back `coordinates_required`.
+  final GeoPin? pin;
+
   bool get hasRegion => regionCode.isNotEmpty && cityCode.isNotEmpty;
+  bool get hasPin => pin != null;
 }
+
+/// The `latitude` / `longitude` pair of a write: both values or both null
+/// (contract §2.2.7, `latlng_pair`).
+Map<String, Object?> pinFields(GeoPin? pin) => {
+  'latitude': pin?.latitude,
+  'longitude': pin?.longitude,
+};
 
 /// A BTS region with its cities (`GET delivery/regions/`).
 class Region {
@@ -72,6 +87,7 @@ class AddressesApi {
     String label = '',
     String comment = '',
     bool isDefault = false,
+    GeoPin? pin,
     required String idempotencyKey,
   }) async => Address.fromJson(
     asJson(
@@ -84,14 +100,15 @@ class AddressesApi {
           'region_code': regionCode,
           'city_code': cityCode,
           'comment': comment,
-          'latitude': null,
-          'longitude': null,
+          ...pinFields(pin),
           'is_default': isDefault,
         },
       ),
     ),
   );
 
+  /// `PATCH me/addresses/{id}/`: only the given keys change. Pass
+  /// [pinFields] to set or remove the pin; leave them out to keep it.
   Future<Address> update(int id, Map<String, Object?> fields) async =>
       Address.fromJson(
         asJson(await _api.patch('me/addresses/$id/', body: fields)),

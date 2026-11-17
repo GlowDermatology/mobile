@@ -970,7 +970,8 @@ class _ItemsStrip extends StatelessWidget {
             SizedBox.square(
               dimension: 48,
               child: GdImage(
-                url: l.imageUrl,
+                url: l.thumbUrl,
+                fallbackUrl: l.imageUrl,
                 seed: l.name,
                 radius: GdRadius.sm,
                 artSize: 30,

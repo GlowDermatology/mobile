@@ -39,6 +39,7 @@ class InboxItem {
     required this.link,
     required this.createdAt,
     required this.readAt,
+    this.imageMediumUrl,
   });
 
   factory InboxItem.fromJson(Json json) => InboxItem(
@@ -47,6 +48,7 @@ class InboxItem {
     title: asString(json['title']),
     body: asString(json['body']),
     imageUrl: asStringOrNull(json['image_url']),
+    imageMediumUrl: asStringOrNull(json['image_medium_url']),
     link: json['link'] is Map
         ? InboxLink.fromJson(asJson(json['link']))
         : InboxLink.none,
@@ -61,6 +63,10 @@ class InboxItem {
   final String title;
   final String body;
   final String? imageUrl;
+
+  /// 1000 px variant (null → the original).
+  final String? imageMediumUrl;
+  String? get mediumUrl => imageMediumUrl ?? imageUrl;
   final InboxLink link;
   final DateTime? createdAt;
   final DateTime? readAt;
