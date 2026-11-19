@@ -14,7 +14,7 @@ import '../data/appointment_models.dart';
 import 'appointment_widgets.dart';
 import 'appointments_text.dart';
 
-/// "Mutaxassislar" (PDF p.12): specialists by role with their next free time.
+/// "Mutaxassislar" (PDF p.12): specialists by role with clinic addresses.
 class SpecialistsScreen extends ConsumerStatefulWidget {
   const SpecialistsScreen({super.key});
 
@@ -121,7 +121,7 @@ class _SpecialistsScreenState extends ConsumerState<SpecialistsScreen> {
   }
 }
 
-/// One specialist: avatar, name, role · services, next free time, price.
+/// One specialist with services, clinic addresses and price.
 class SpecialistCard extends StatelessWidget {
   const SpecialistCard({super.key, required this.specialist});
   final Specialist specialist;
@@ -133,6 +133,7 @@ class SpecialistCard extends StatelessWidget {
     final s = specialist;
     final summary = servicesSummary(s);
     final minPrice = s.minPrice;
+    final shortestService = s.shortestService;
     return Semantics(
       identifier: 'specialists.item.${s.id}',
       button: true,
@@ -171,15 +172,40 @@ class SpecialistCard extends StatelessWidget {
                 Icon(Icons.chevron_right_rounded, color: c.inkMuted),
               ],
             ),
+            for (final location in s.locations)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 16,
+                      color: c.goldInk,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        [
+                          location.name,
+                          location.address,
+                        ].where((part) => part.isNotEmpty).join(' · '),
+                        style: t.bodySm.copyWith(color: c.inkMuted),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                if (s.shortestService != null)
+                if (shortestService != null && s.locations.length == 1)
                   _NextSlotChip(
                     specialistId: s.id,
-                    serviceId: s.shortestService!.id,
+                    serviceId: shortestService.id,
+                    locationId: s.locations.single.id,
                   ),
                 if (minPrice != null)
                   InfoChip(
@@ -202,15 +228,24 @@ class SpecialistCard extends StatelessWidget {
 }
 
 class _NextSlotChip extends ConsumerWidget {
-  const _NextSlotChip({required this.specialistId, required this.serviceId});
+  const _NextSlotChip({
+    required this.specialistId,
+    required this.serviceId,
+    required this.locationId,
+  });
   final int specialistId;
   final int serviceId;
+  final int locationId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.gd;
     final async = ref.watch(
-      nextSlotProvider((specialistId: specialistId, serviceId: serviceId)),
+      nextSlotProvider((
+        specialistId: specialistId,
+        serviceId: serviceId,
+        locationId: locationId,
+      )),
     );
     return switch (async) {
       AsyncData(value: final DateTime slot) => InfoChip(

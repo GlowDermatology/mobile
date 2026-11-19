@@ -169,10 +169,20 @@ class _AppointmentScreenState extends ConsumerState<AppointmentScreen> {
             label: AppointmentsText.rowTime.of(context),
             value: formatAppointmentTime(a, lang),
           ),
-          if (a.location != null && a.location!.address.isNotEmpty)
+          if (a.location.name.isNotEmpty)
+            InfoRow(
+              label: AppointmentsText.clinic.of(context),
+              value: a.location.name,
+            ),
+          if (a.location.address.isNotEmpty)
             InfoRow(
               label: AppointmentsText.rowAddress.of(context),
-              value: a.location!.address,
+              value: a.location.address,
+            ),
+          if (a.location.directions.isNotEmpty)
+            InfoRow(
+              label: AppointmentsText.rowDirections.of(context),
+              value: a.location.directions,
             ),
           InfoRow(
             label: AppointmentsText.rowPrice.of(context),
