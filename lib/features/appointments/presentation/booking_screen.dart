@@ -19,7 +19,7 @@ import 'appointment_actions.dart';
 import 'appointment_widgets.dart';
 import 'appointments_text.dart';
 
-/// "Qabulga yozilish" (PDF p.13): service, day, free time, then
+/// "Qabulga yozilish" (PDF p.13): clinic, service, day, free time, then
 /// `POST appointments/`. With [rescheduleFrom] the old appointment is
 /// cancelled once the new one is booked.
 class BookingScreen extends ConsumerStatefulWidget {
@@ -44,9 +44,10 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   late final List<DateTime> _days = dateStrip(clock.now());
   final _dayScroll = ScrollController();
 
+  int? _locationId;
   int? _serviceId;
   late DateTime _day = _days.first;
-  Slot? _slot;
+  ({SlotsKey key, Slot value})? _selectedSlot;
   bool _submitting = false;
 
   /// Until the customer picks a day, a closed day moves the selection on.
@@ -58,31 +59,48 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     super.dispose();
   }
 
-  SlotsKey _key(int serviceId, DateTime day) => (
+  SlotsKey _key(int locationId, int serviceId, DateTime day) => (
     specialistId: widget.specialistId,
     serviceId: serviceId,
+    locationId: locationId,
     date: isoDate(day),
   );
 
-  SpecialistService? _service(Specialist s) {
-    if (s.services.isEmpty) return null;
-    var id = _serviceId;
-    if (id == null && widget.rescheduleFrom != null) {
-      id = ref
-          .watch(appointmentProvider(widget.rescheduleFrom!))
-          .value
-          ?.serviceId;
+  ClinicLocation? _location(Specialist specialist, Appointment? rescheduled) {
+    if (specialist.locations.length == 1) return specialist.locations.single;
+    final id = _locationId ?? rescheduled?.location.id;
+    for (final location in specialist.locations) {
+      if (location.id == id) return location;
     }
-    return s.services.firstWhere(
+    return null;
+  }
+
+  SpecialistService? _service(Specialist specialist, Appointment? rescheduled) {
+    if (specialist.services.isEmpty) return null;
+    final id = _serviceId ?? rescheduled?.serviceId;
+    return specialist.services.firstWhere(
       (e) => e.id == id,
-      orElse: () => s.services.first,
+      orElse: () => specialist.services.first,
     );
   }
+
+  void _selectLocation(int id) {
+    setState(() {
+      _locationId = id;
+      _day = _days.first;
+      _selectedSlot = null;
+      _autoAdvance = true;
+    });
+    if (_dayScroll.hasClients) _dayScroll.jumpTo(0);
+  }
+
+  Slot? _slotFor(SlotsKey key) =>
+      _selectedSlot?.key == key ? _selectedSlot?.value : null;
 
   void _selectDay(DateTime day, {bool byUser = true}) {
     setState(() {
       _day = day;
-      _slot = null;
+      _selectedSlot = null;
       if (byUser) _autoAdvance = false;
     });
     final index = _days.indexOf(day);
@@ -102,10 +120,26 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(specialistProvider(widget.specialistId));
+    final rescheduleFrom = widget.rescheduleFrom;
+    final rescheduled = rescheduleFrom == null
+        ? null
+        : ref.watch(appointmentProvider(rescheduleFrom)).value;
+    final specialist = async.value;
+    final location = specialist == null
+        ? null
+        : _location(specialist, rescheduled);
+    final service = specialist == null
+        ? null
+        : _service(specialist, rescheduled);
     return Scaffold(
       appBar: GdHeader(title: AppointmentsText.bookingTitle.of(context)),
       body: switch (async) {
-        AsyncValue(value: final Specialist s) => _body(context, s),
+        AsyncValue(value: final Specialist s) => _body(
+          context,
+          s,
+          location,
+          service,
+        ),
         AsyncError(:final error) => GdErrorView(
           error: error,
           onRetry: () =>
@@ -113,16 +147,20 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         ),
         _ => const GdLoading(),
       },
-      bottomNavigationBar: async.value == null
+      bottomNavigationBar: location == null || service == null
           ? null
-          : _bottom(context, async.value!),
+          : _bottom(context, location, service),
     );
   }
 
-  Widget _body(BuildContext context, Specialist s) {
+  Widget _body(
+    BuildContext context,
+    Specialist s,
+    ClinicLocation? location,
+    SpecialistService? service,
+  ) {
     final c = context.gd;
     final t = context.gdText;
-    final service = _service(s);
     final descriptions = ref.watch(servicesProvider).value ?? const {};
     return ListView(
       padding: const EdgeInsets.fromLTRB(GdSpace.page, 4, GdSpace.page, 24),
@@ -142,11 +180,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 children: [
                   Text(s.name, style: t.subheading),
                   Text(
-                    [
-                      s.roleLabel,
-                      if (s.location != null && s.location!.name.isNotEmpty)
-                        s.location!.name,
-                    ].join(' · '),
+                    s.roleLabel,
                     style: t.bodySm.copyWith(color: c.inkMuted),
                   ),
                 ],
@@ -162,6 +196,23 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           ),
         ],
         const SizedBox(height: 22),
+        _Label(AppointmentsText.clinic.of(context)),
+        if (s.locations.isEmpty)
+          Text(AppointmentsText.noClinics.of(context), style: t.bodyMd)
+        else
+          for (final clinic in s.locations) ...[
+            _ClinicCard(
+              clinic: clinic,
+              selected: clinic.id == location?.id,
+              onTap: s.locations.length > 1 && !_submitting
+                  ? () {
+                      if (clinic.id != location?.id) _selectLocation(clinic.id);
+                    }
+                  : null,
+            ),
+            const SizedBox(height: 10),
+          ],
+        const SizedBox(height: 12),
         _Label(AppointmentsText.service.of(context)),
         if (service == null)
           Text(AppointmentsText.noServices.of(context), style: t.bodyMd)
@@ -173,12 +224,12 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
               selected: svc.id == service.id,
               onTap: () => setState(() {
                 _serviceId = svc.id;
-                _slot = null;
+                _selectedSlot = null;
               }),
             ),
             const SizedBox(height: 10),
           ],
-        if (service != null) ...[
+        if (location != null && service != null) ...[
           const SizedBox(height: 12),
           _Label(AppointmentsText.date.of(context)),
           SizedBox(
@@ -193,7 +244,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 final day = _days[i];
                 return _DayChip(
                   day: day,
-                  slotsKey: _key(service.id, day),
+                  slotsKey: _key(location.id, service.id, day),
                   selected: day == _day,
                   width: _dayChipWidth,
                   onTap: () => _selectDay(day),
@@ -203,7 +254,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           ),
           const SizedBox(height: 22),
           _Label(AppointmentsText.freeTime.of(context)),
-          _times(context, service),
+          _times(context, location, service),
           const SizedBox(height: 18),
           _Note(
             icon: Icons.info_outline_rounded,
@@ -214,8 +265,16 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     );
   }
 
-  Widget _times(BuildContext context, SpecialistService service) {
-    final key = _key(service.id, _day);
+  Widget _times(
+    BuildContext context,
+    ClinicLocation location,
+    SpecialistService service,
+  ) {
+    final activeDay = _day;
+    final activeLocationId = _locationId;
+    final activeServiceId = _serviceId;
+    final key = _key(location.id, service.id, activeDay);
+    final selected = _slotFor(key);
     final async = ref.watch(slotsProvider(key));
     switch (async) {
       case AsyncValue(value: final SlotsDay day):
@@ -223,7 +282,11 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           final next = _days.indexOf(_day) + 1;
           if (next < _days.length) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted && _autoAdvance && _day != _days[next]) {
+              if (mounted &&
+                  _autoAdvance &&
+                  _day == activeDay &&
+                  _locationId == activeLocationId &&
+                  _serviceId == activeServiceId) {
                 _selectDay(_days[next], byUser: false);
               }
             });
@@ -252,18 +315,17 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
           childAspectRatio: 1.85,
-          children: [
-            for (final chip in chips)
-              _TimeChipView(
-                chip: chip,
-                selected:
-                    chip.slot != null &&
-                    _slot?.startAtRaw == chip.slot!.startAtRaw,
-                onTap: chip.enabled
-                    ? () => setState(() => _slot = chip.slot)
-                    : null,
-              ),
-          ],
+          children: chips.map((chip) {
+            final slot = chip.slot;
+            return _TimeChipView(
+              chip: chip,
+              selected: slot != null && selected?.startAtRaw == slot.startAtRaw,
+              onTap: slot == null || !chip.enabled
+                  ? null
+                  : () =>
+                        setState(() => _selectedSlot = (key: key, value: slot)),
+            );
+          }).toList(),
         );
       case AsyncError(:final error):
         return GdErrorView(
@@ -275,31 +337,50 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     }
   }
 
-  Widget? _bottom(BuildContext context, Specialist s) {
-    final service = _service(s);
-    if (service == null) return null;
+  Widget _bottom(
+    BuildContext context,
+    ClinicLocation location,
+    SpecialistService service,
+  ) {
     final lang = context.language;
     final t = context.gdText;
-    final day = ref.watch(slotsProvider(_key(service.id, _day))).value;
+    final slotsKey = _key(location.id, service.id, _day);
+    final day = ref.watch(slotsProvider(slotsKey)).value;
+    final slot = _slotFor(slotsKey);
     final price = day?.price ?? service.price;
     final duration = day?.durationMin ?? service.durationMin;
-    final start = _slot?.startAt;
+    final start = slot?.startAt;
     final summary = start == null
         ? AppointmentsText.chooseTime.of(context)
         : '${weekdayShort(start, lang)}, ${formatDayMonth(start, lang)} · ${formatTime(start)} · ${AppointmentsText.minutes.fmt(context, {'n': duration})}';
     return GdBottomBar(
-      top: Row(
+      top: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Text(
-              summary,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  summary,
+                  style: t.bodySm.copyWith(color: context.gd.inkMuted),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(formatMoney(price, language: lang), style: t.price),
+            ],
+          ),
+          if (start != null)
+            Text(
+              [
+                location.name,
+                location.address,
+              ].where((part) => part.isNotEmpty).join(' · '),
               style: t.bodySm.copyWith(color: context.gd.inkMuted),
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-          ),
-          const SizedBox(width: 12),
-          Text(formatMoney(price, language: lang), style: t.price),
         ],
       ),
       child: SizedBox(
@@ -308,30 +389,30 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           label: AppointmentsText.book.of(context),
           loading: _submitting,
           semanticsId: 'booking.submit',
-          onPressed: _slot == null ? null : () => _book(s, service, _slot!),
+          onPressed: slot == null ? null : () => _book(slotsKey, slot),
         ),
       ),
     );
   }
 
-  Future<void> _book(Specialist s, SpecialistService service, Slot slot) async {
+  Future<void> _book(SlotsKey slotsKey, Slot slot) async {
     // Captured up front: the customer may leave the screen while the request
     // runs, and a disposed widget's `ref` can no longer be used.
     final container = ProviderScope.containerOf(context, listen: false);
     final api = container.read(appointmentsApiProvider);
     final keys = container.read(idempotencyProvider);
     final from = widget.rescheduleFrom;
-    final slotsKey = _key(service.id, _day);
     setState(() => _submitting = true);
     try {
       final created = await runGuarded(
         context,
         () => withIntentKey(
           keys,
-          'appointment.book:${s.id}:${service.id}:${slot.startAtRaw}',
+          'appointment.book:${slotsKey.specialistId}:${slotsKey.serviceId}:${slotsKey.locationId}:${slot.startAtRaw}',
           (key) => api.book(
-            specialistId: s.id,
-            serviceId: service.id,
+            specialistId: slotsKey.specialistId,
+            serviceId: slotsKey.serviceId,
+            locationId: slotsKey.locationId,
             start: slot.startAtRaw,
             idempotencyKey: key,
           ),
@@ -366,7 +447,9 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       if (e.code == 'slot_taken' ||
           e.fieldCodes['start'] == 'slot_unavailable') {
         container.invalidate(slotsProvider(slotsKey));
-        if (mounted) setState(() => _slot = null);
+        if (mounted && _selectedSlot?.key == slotsKey) {
+          setState(() => _selectedSlot = null);
+        }
       }
       if (mounted) showSnack(context, bookingErrorMessage(context, e));
     } on Object catch (e) {
@@ -374,6 +457,64 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+}
+
+class _ClinicCard extends StatelessWidget {
+  const _ClinicCard({
+    required this.clinic,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ClinicLocation clinic;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.gd;
+    final t = context.gdText;
+    return Semantics(
+      identifier: 'booking.clinic.${clinic.id}',
+      button: onTap != null,
+      selected: selected,
+      child: GdCard(
+        border: Border.all(color: selected ? c.goldInk : c.line),
+        color: selected ? c.goldSoft : c.surfaceRaised,
+        onTap: onTap,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.location_on_outlined, size: 20, color: c.goldInk),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(clinic.name, style: t.label),
+                  if (clinic.address.isNotEmpty)
+                    Text(clinic.address, style: t.bodySm),
+                  if (selected && clinic.directions.isNotEmpty)
+                    Text(
+                      clinic.directions,
+                      style: t.bodySm.copyWith(color: c.inkMuted),
+                    ),
+                ],
+              ),
+            ),
+            if (onTap != null)
+              Icon(
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color: selected ? c.goldInk : c.inkMuted,
+                size: 20,
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

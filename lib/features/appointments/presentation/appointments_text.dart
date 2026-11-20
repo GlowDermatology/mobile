@@ -53,6 +53,12 @@ abstract final class AppointmentsText {
     'Book an appointment',
   );
   static const service = Tr('Xizmat', 'Услуга', 'Service');
+  static const clinic = Tr('Klinika', 'Клиника', 'Clinic');
+  static const noClinics = Tr(
+    'Bu mutaxassis hozircha hech bir klinikada onlayn qabul qilmaydi.',
+    'Пока нет клиник, где можно записаться к этому специалисту.',
+    'This specialist has no clinics available for online booking.',
+  );
   static const date = Tr('Sana', 'Дата', 'Date');
   static const freeTime = Tr('Bo‘sh vaqt', 'Свободное время', 'Free times');
   static const minutes = Tr('{n} daqiqa', '{n} мин', '{n} min');
@@ -62,9 +68,9 @@ abstract final class AppointmentsText {
     'No free time on this day',
   );
   static const notWorking = Tr(
-    'Mutaxassis bu kuni ishlamaydi.',
-    'Специалист в этот день не работает.',
-    'The specialist does not work on this day.',
+    'Mutaxassis bu kuni ushbu klinikada qabul qilmaydi.',
+    'В этот день специалист не принимает в этой клинике.',
+    'The specialist does not see patients at this clinic on this day.',
   );
   static const bookingNote = Tr(
     'So‘rovingizni mutaxassis tasdiqlaydi. Narx bron paytidagidek saqlanadi.',
@@ -109,6 +115,7 @@ abstract final class AppointmentsText {
   static const rowService = Tr('Xizmat', 'Услуга', 'Service');
   static const rowTime = Tr('Vaqt', 'Время', 'Time');
   static const rowAddress = Tr('Manzil', 'Адрес', 'Address');
+  static const rowDirections = Tr('Mo‘ljal', 'Как добраться', 'Directions');
   static const rowPrice = Tr('Narx', 'Цена', 'Price');
   static const policy = Tr(
     'Bekor qilish va ko‘chirish shartlari: {policy}',

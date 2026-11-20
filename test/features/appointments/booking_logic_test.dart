@@ -181,7 +181,8 @@ void main() {
       expect(nodira.initials, 'NR');
       expect(nodira.minPrice, 100000);
       expect(nodira.shortestService!.id, 2);
-      expect(nodira.location!.name, 'Glow Derma klinikasi');
+      expect(nodira.locations.single.name, 'Glow Derma klinikasi');
+      expect(nodira.locations.single.directions, 'Metro yonida');
       expect(servicesSummary(nodira), 'Konsultatsiya, Qayta ko‘rik');
       expect(
         filterSpecialists([
@@ -204,6 +205,8 @@ void main() {
       final a = Appointment.fromJson(appointmentJson());
       expect(a.specialist.id, 1);
       expect(a.serviceName, 'Dermatolog konsultatsiyasi');
+      expect(a.location.id, 1);
+      expect(a.location.directions, 'Metro yonida');
       expect(a.canCancel, isTrue);
       expect(
         formatAppointmentTime(a, AppLanguage.uz),

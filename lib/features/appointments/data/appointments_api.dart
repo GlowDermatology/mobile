@@ -26,16 +26,21 @@ class AppointmentsApi {
           .map(ServiceInfo.fromJson)
           .toList();
 
-  /// Free start times of [specialistId] for [serviceId] on [date] ("YYYY-MM-DD").
+  /// Free start times at the selected clinic on [date] ("YYYY-MM-DD").
   Future<SlotsDay> slots(
     int specialistId, {
     required String date,
     required int serviceId,
+    required int locationId,
   }) async => SlotsDay.fromJson(
     asJson(
       await _api.get(
         'specialists/$specialistId/slots/',
-        query: {'date': date, 'service_id': serviceId},
+        query: {
+          'date': date,
+          'service_id': serviceId,
+          'location_id': locationId,
+        },
       ),
     ),
   );
@@ -43,6 +48,7 @@ class AppointmentsApi {
   Future<Appointment> book({
     required int specialistId,
     required int serviceId,
+    required int locationId,
     required String start,
     String? note,
     required String idempotencyKey,
@@ -53,6 +59,7 @@ class AppointmentsApi {
         body: {
           'specialist_id': specialistId,
           'service_id': serviceId,
+          'location_id': locationId,
           'start': start,
           'note': note,
         },

@@ -41,10 +41,15 @@ final servicesProvider = FutureProvider.autoDispose<Map<int, ServiceInfo>>((
   return {for (final s in list) s.id: s};
 }, retry: _noRetry);
 
-typedef SlotsKey = ({int specialistId, int serviceId, String date});
+typedef SlotsKey = ({
+  int specialistId,
+  int serviceId,
+  int locationId,
+  String date,
+});
 
-/// Free times of one specialist, service and day; cached for a minute so the
-/// date strip does not re-ask while scrolling.
+/// Free times for one specialist, service, clinic and day. Date strip requests
+/// are cached for a minute.
 final slotsProvider = FutureProvider.autoDispose.family<SlotsDay, SlotsKey>((
   ref,
   key,
@@ -52,20 +57,32 @@ final slotsProvider = FutureProvider.autoDispose.family<SlotsDay, SlotsKey>((
   _cacheFor(ref, const Duration(minutes: 1));
   return ref
       .watch(appointmentsApiProvider)
-      .slots(key.specialistId, date: key.date, serviceId: key.serviceId);
+      .slots(
+        key.specialistId,
+        date: key.date,
+        serviceId: key.serviceId,
+        locationId: key.locationId,
+      );
 }, retry: _noRetry);
 
 /// The next free time of a specialist (shortest service, today … +6), or null
 /// when the week is booked. Scans day by day, stops at the first hit, and is
 /// kept for 5 minutes.
 final nextSlotProvider = FutureProvider.autoDispose
-    .family<DateTime?, ({int specialistId, int serviceId})>((ref, key) {
+    .family<DateTime?, ({int specialistId, int serviceId, int locationId})>((
+      ref,
+      key,
+    ) {
       _cacheFor(ref, const Duration(minutes: 5));
       final api = ref.watch(appointmentsApiProvider);
       return findNextSlot(
         now: clock.now(),
-        fetch: (date) =>
-            api.slots(key.specialistId, date: date, serviceId: key.serviceId),
+        fetch: (date) => api.slots(
+          key.specialistId,
+          date: date,
+          serviceId: key.serviceId,
+          locationId: key.locationId,
+        ),
       );
     }, retry: _noRetry);
 

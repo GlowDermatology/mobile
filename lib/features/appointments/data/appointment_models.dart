@@ -1,25 +1,34 @@
 import '../../../core/network/json.dart';
 
-/// Where a specialist receives (`Specialist.location`, `Appointment.location`).
+/// A clinic a specialist works at or an appointment is booked at.
 class ClinicLocation {
   const ClinicLocation({
-    this.id,
+    required this.id,
     required this.name,
     required this.address,
+    required this.directions,
     required this.phone,
+    this.latitude,
+    this.longitude,
   });
 
   factory ClinicLocation.fromJson(Json json) => ClinicLocation(
-    id: asIntOrNull(json['id']),
+    id: asInt(json['id']),
     name: asString(json['name']),
     address: asString(json['address']),
-    phone: asString(json['phone']),
+    directions: asString(json['directions']),
+    phone: asStringOrNull(json['phone']),
+    latitude: asDoubleOrNull(json['latitude']),
+    longitude: asDoubleOrNull(json['longitude']),
   );
 
-  final int? id;
+  final int id;
   final String name;
   final String address;
-  final String phone;
+  final String directions;
+  final String? phone;
+  final double? latitude;
+  final double? longitude;
 }
 
 /// A service as one specialist offers it (their own duration and price).
@@ -61,7 +70,7 @@ class Specialist {
     this.bio = '',
     this.qualifications = '',
     this.experienceYears,
-    this.location,
+    required this.locations,
     this.services = const [],
     this.slotStepMin = 30,
   });
@@ -76,9 +85,9 @@ class Specialist {
     bio: asString(json['bio']),
     qualifications: asString(json['qualifications']),
     experienceYears: asIntOrNull(json['experience_years']),
-    location: json['location'] is Map
-        ? ClinicLocation.fromJson(asJson(json['location']))
-        : null,
+    locations: asJsonList(json['locations'])
+        .map(ClinicLocation.fromJson)
+        .toList(),
     services: asJsonList(json['services'])
         .map(SpecialistService.fromJson)
         .toList(),
@@ -99,7 +108,7 @@ class Specialist {
   final String bio;
   final String qualifications;
   final int? experienceYears;
-  final ClinicLocation? location;
+  final List<ClinicLocation> locations;
   final List<SpecialistService> services;
   final int slotStepMin;
 
@@ -207,10 +216,11 @@ class Slot {
   int? get startMinutes => parseClock(start);
 }
 
-/// `GET specialists/{id}/slots/?date=&service_id=`.
+/// `GET specialists/{id}/slots/?date=&service_id=&location_id=`.
 class SlotsDay {
   const SlotsDay({
     required this.date,
+    required this.locationId,
     required this.durationMin,
     required this.price,
     required this.slotStepMin,
@@ -226,6 +236,7 @@ class SlotsDay {
         : null;
     return SlotsDay(
       date: asString(json['date']),
+      locationId: asInt(json['location_id']),
       durationMin: asInt(json['duration_min']),
       price: asInt(json['price']),
       slotStepMin: asInt(json['slot_step_min'], 30),
@@ -238,6 +249,7 @@ class SlotsDay {
 
   /// "2026-10-28".
   final String date;
+  final int locationId;
   final int durationMin;
   final int price;
   final int slotStepMin;
@@ -300,7 +312,7 @@ class Appointment {
     required this.serviceId,
     required this.serviceName,
     required this.serviceShortName,
-    this.location,
+    required this.location,
     this.start,
     this.end,
     this.durationMin = 0,
@@ -320,9 +332,7 @@ class Appointment {
       serviceId: asInt(service['id']),
       serviceName: asString(service['name']),
       serviceShortName: asString(service['short_name']),
-      location: json['location'] is Map
-          ? ClinicLocation.fromJson(asJson(json['location']))
-          : null,
+      location: ClinicLocation.fromJson(asJson(json['location'])),
       start: asDate(json['start']),
       end: asDate(json['end']),
       durationMin: asInt(json['duration_min']),
@@ -340,7 +350,7 @@ class Appointment {
   final int serviceId;
   final String serviceName;
   final String serviceShortName;
-  final ClinicLocation? location;
+  final ClinicLocation location;
   final DateTime? start;
   final DateTime? end;
   final int durationMin;

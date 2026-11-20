@@ -162,7 +162,7 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen> {
   }
 }
 
-/// One appointment in the list: time, specialist, service, status.
+/// One appointment in the list with its time, specialist, service and clinic.
 class AppointmentCard extends StatelessWidget {
   const AppointmentCard({
     super.key,
@@ -180,6 +180,10 @@ class AppointmentCard extends StatelessWidget {
     final service = a.serviceName.isNotEmpty
         ? a.serviceName
         : a.serviceShortName;
+    final clinic = [
+      a.location.name,
+      a.location.address,
+    ].where((part) => part.isNotEmpty).join(' · ');
     return Semantics(
       identifier: 'appointments.item.${a.id}',
       button: true,
@@ -232,6 +236,10 @@ class AppointmentCard extends StatelessWidget {
                 Icon(Icons.chevron_right_rounded, color: c.inkMuted),
               ],
             ),
+            if (clinic.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(clinic, style: t.bodySm.copyWith(color: c.inkMuted)),
+            ],
           ],
         ),
       ),

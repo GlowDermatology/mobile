@@ -12,11 +12,27 @@ import 'package:glow_derma/features/appointments/data/appointments_api.dart';
 import 'package:glow_derma/features/settings/data/public_settings.dart';
 import 'package:go_router/go_router.dart';
 
+Json clinicJson({
+  int id = 1,
+  String name = 'Glow Derma klinikasi',
+  String address = 'Toshkent, Chilonzor',
+  String directions = 'Metro yonida',
+}) => {
+  'id': id,
+  'name': name,
+  'address': address,
+  'directions': directions,
+  'phone': '+998712000000',
+  'latitude': null,
+  'longitude': null,
+};
+
 Json specialistJson({
   int id = 1,
   String name = 'Nodira Rahimova',
   String role = 'dermatologist',
   String roleLabel = 'Dermatolog',
+  List<Json>? locations,
   List<Json>? services,
 }) => {
   'id': id,
@@ -27,14 +43,7 @@ Json specialistJson({
   'bio': '',
   'qualifications': '',
   'experience_years': null,
-  'location': {
-    'id': 1,
-    'name': 'Glow Derma klinikasi',
-    'address': 'Toshkent, Chilonzor',
-    'phone': '+998712000000',
-    'latitude': null,
-    'longitude': null,
-  },
+  'locations': locations ?? [clinicJson()],
   'services':
       services ??
       [
@@ -64,8 +73,10 @@ Json slotsJson(
   List<String> free = const [],
   int duration = 30,
   int price = 150000,
+  int locationId = 1,
 }) => {
   'date': date,
+  'location_id': locationId,
   'duration_min': duration,
   'price': price,
   'slot_step_min': 30,
@@ -81,6 +92,7 @@ Json appointmentJson({
   String status = 'requested',
   String label = 'Tasdiqlanishi kutilmoqda',
   bool canCancel = true,
+  Json? location,
 }) => {
   'id': id,
   'status': status,
@@ -97,11 +109,7 @@ Json appointmentJson({
     'name': 'Dermatolog konsultatsiyasi',
     'short_name': 'Konsultatsiya',
   },
-  'location': {
-    'name': 'Glow Derma klinikasi',
-    'address': 'Toshkent, Chilonzor',
-    'phone': '+998712000000',
-  },
+  'location': location ?? clinicJson(),
   'start': '2026-10-27T10:30:00+05:00',
   'end': '2026-10-27T11:00:00+05:00',
   'duration_min': 30,
@@ -118,14 +126,15 @@ Json appointmentJson({
 class FakeAppointmentsApi implements AppointmentsApi {
   FakeAppointmentsApi({
     List<Json>? specialists,
-    Json Function(int specialistId, String date, int serviceId)? slots,
+    Json Function(int specialistId, String date, int serviceId, int locationId)?
+    slots,
     Map<int, Json>? appointments,
   }) : _specialists = specialists ?? [specialistJson()],
-       _slots = slots ?? ((_, date, _) => slotsJson(date, free: ['09:00'])),
+       _slots = slots ?? ((_, date, _, _) => slotsJson(date, free: ['09:00'])),
        appointments = appointments ?? {41: appointmentJson()};
 
   final List<Json> _specialists;
-  final Json Function(int, String, int) _slots;
+  final Json Function(int, String, int, int) _slots;
   final Map<int, Json> appointments;
   final slotCalls = <String>[];
   final booked = <Map<String, Object?>>[];
@@ -155,15 +164,20 @@ class FakeAppointmentsApi implements AppointmentsApi {
     int specialistId, {
     required String date,
     required int serviceId,
+    required int locationId,
   }) async {
-    slotCalls.add('$specialistId/$date/$serviceId');
-    return SlotsDay.fromJson(_slots(specialistId, date, serviceId));
+    slotCalls.add('$specialistId/$date/$serviceId/$locationId');
+    return SlotsDay.fromJson({
+      ..._slots(specialistId, date, serviceId, locationId),
+      'location_id': locationId,
+    });
   }
 
   @override
   Future<Appointment> book({
     required int specialistId,
     required int serviceId,
+    required int locationId,
     required String start,
     String? note,
     required String idempotencyKey,
@@ -173,10 +187,14 @@ class FakeAppointmentsApi implements AppointmentsApi {
     booked.add({
       'specialist_id': specialistId,
       'service_id': serviceId,
+      'location_id': locationId,
       'start': start,
       'key': idempotencyKey,
     });
-    appointments[77] = appointmentJson(id: 77);
+    final specialist = _specialists.firstWhere((s) => s['id'] == specialistId);
+    final location = asJsonList(specialist['locations'])
+        .firstWhere((clinic) => clinic['id'] == locationId);
+    appointments[77] = appointmentJson(id: 77, location: location);
     return Appointment.fromJson(appointments[77]!);
   }
 
