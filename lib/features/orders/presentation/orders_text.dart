@@ -50,6 +50,11 @@ abstract final class OrdersText {
     'Приложение Payme или страница оплаты',
     'Payme app or payment page',
   );
+  static const uzumHint = Tr(
+    'Uzcard, Humo, Visa, Mastercard',
+    'Uzcard, Humo, Visa, Mastercard',
+    'Uzcard, Humo, Visa, Mastercard',
+  );
   static const providerHint = Tr(
     '{p} ilovasi yoki to‘lov sahifasi',
     'Приложение {p} или страница оплаты',
@@ -61,6 +66,13 @@ abstract final class OrdersText {
     'Откроется платёжное приложение; если его нет, откроется страница оплаты. Данные карты в приложении Glow Derma не вводятся.',
     'The payment app opens; if it is not installed, the payment page opens. Card details are never entered in the Glow Derma app.',
   );
+
+  /// [safetyNote] for Uzum: a card form in the browser, no app involved.
+  static const uzumSafetyNote = Tr(
+    'Uzum to‘lov sahifasi brauzerda ochiladi; Uzum Bank ilovasi kerak emas. Karta ma’lumotlari Glow Derma ilovasida kiritilmaydi.',
+    'Страница оплаты Uzum откроется в браузере; приложение Uzum Bank не нужно. Данные карты в приложении Glow Derma не вводятся.',
+    'The Uzum payment page opens in your browser; the Uzum Bank app is not needed. Card details are never entered in the Glow Derma app.',
+  );
   static const payWith = Tr(
     '{p} orqali to‘lash',
     'Оплатить через {p}',
@@ -71,6 +83,11 @@ abstract final class OrdersText {
     'To‘lov sahifasini ochib bo‘lmadi. Qayta urinib ko‘ring.',
     'Не удалось открыть страницу оплаты. Повторите попытку.',
     'Could not open the payment page. Please try again.',
+  );
+  static const providerUnavailable = Tr(
+    'To‘lov xizmati javob bermadi. Birozdan so‘ng qayta urinib ko‘ring.',
+    'Платёжный сервис не ответил. Повторите попытку чуть позже.',
+    'The payment service did not respond. Please try again in a moment.',
   );
   static const noProviders = Tr(
     'Onlayn to‘lov hozircha mavjud emas.',

@@ -359,6 +359,52 @@ void main() {
     expect(find.text(formatMoney(808000)), findsWidgets);
   });
 
+  testWidgets('an unknown provider is skipped: the order goes out with Uzum', (
+    tester,
+  ) async {
+    final api = _FakeApi();
+    await _pumpCheckout(
+      tester,
+      api,
+      cart: _cart(cashback: 0),
+      addresses: () => [_address(7, label: 'Eski', region: false)],
+      settings: const PublicSettings({
+        'payment_providers': ['octo', 'uzum'],
+        'online_sales_enabled': true,
+        'fulfilment_methods': ['delivery', 'pickup'],
+        'pickup_address': 'Toshkent, Bunyodkor 12',
+        'reservation_minutes': 15,
+      }),
+    );
+    await tester.tap(find.textContaining('Buyurtma berish'));
+    await tester.pumpAndSettle();
+    expect(api.checkouts.single['payment_provider'], 'uzum');
+    expect(find.text('pay 10248'), findsOneWidget);
+  });
+
+  testWidgets('only unknown providers: no online payment, nothing is placed', (
+    tester,
+  ) async {
+    final api = _FakeApi();
+    await _pumpCheckout(
+      tester,
+      api,
+      cart: _cart(cashback: 0),
+      addresses: () => [_address(7, label: 'Eski', region: false)],
+      settings: const PublicSettings({
+        'payment_providers': ['octo'],
+        'online_sales_enabled': true,
+        'fulfilment_methods': ['delivery', 'pickup'],
+        'pickup_address': 'Toshkent, Bunyodkor 12',
+        'reservation_minutes': 15,
+      }),
+    );
+    expect(find.text('Onlayn to‘lov hozircha mavjud emas.'), findsOneWidget);
+    await tester.tap(find.textContaining('Buyurtma berish'));
+    await tester.pumpAndSettle();
+    expect(api.checkouts, isEmpty);
+  });
+
   testWidgets('lists the carrier options with labels, prices and windows', (
     tester,
   ) async {

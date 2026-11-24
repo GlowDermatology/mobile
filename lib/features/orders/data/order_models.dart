@@ -27,6 +27,7 @@ enum OrderScope {
 String providerName(String? provider) => switch (provider) {
   'click' => 'Click',
   'payme' => 'Payme',
+  'uzum' => 'Uzum',
   null || '' => '',
   _ => provider[0].toUpperCase() + provider.substring(1),
 };

@@ -77,6 +77,8 @@ void main() {
     expect(providerName('payme'), 'Payme');
     expect(providerName(null), '');
     expect(providerName('uzum'), 'Uzum');
+    expect(providerName('octo'), 'Octo');
+    expect(providerName(''), '');
   });
 
   group('list card route', () {

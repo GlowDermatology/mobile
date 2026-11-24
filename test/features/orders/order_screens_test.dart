@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:glow_derma/features/settings/data/public_settings.dart';
 import 'package:glow_derma/core/network/api_exception.dart';
 import 'package:glow_derma/features/checkout/presentation/payment_screen.dart';
 import 'package:glow_derma/features/orders/data/order_models.dart';
@@ -8,6 +9,12 @@ import 'package:glow_derma/features/orders/presentation/order_success_screen.dar
 import 'package:glow_derma/features/orders/presentation/orders_screen.dart';
 
 import 'fakes.dart';
+
+/// Public settings offering [providers].
+PublicSettings _settingsWith(List<Object?> providers) => PublicSettings({
+  'payment_providers': providers,
+  'online_sales_enabled': true,
+});
 
 void main() {
   testWidgets('order detail: status, stepper, items, totals and reorder', (
@@ -161,6 +168,142 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+
+  testWidgets('payment screen: Uzum is offered with its cards and opens '
+      'its https form in the browser', (tester) async {
+    final opened = <Uri>[];
+    final api = FakeOrdersApi(details: {10248: detail(awaitingJson())})
+      ..payWebUrl = 'https://checkout.example.uz/pay/abc';
+    await pumpScreen(
+      tester,
+      const PaymentScreen(orderId: 10248),
+      api,
+      height: 1400,
+      settings: _settingsWith(['click', 'payme', 'uzum', 'octo']),
+      overrides: [
+        paymentPageOpenerProvider.overrideWithValue((url) async {
+          opened.add(url);
+          return true;
+        }),
+      ],
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Click'), findsOneWidget);
+    expect(find.text('Payme'), findsOneWidget);
+    expect(find.text('Uzum'), findsOneWidget);
+    expect(find.text('Uzcard, Humo, Visa, Mastercard'), findsOneWidget);
+    // An unknown provider never reaches the picker.
+    expect(find.text('Octo'), findsNothing);
+    expect(find.textContaining('Uzum Bank ilovasi kerak emas'), findsNothing);
+
+    await tester.tap(find.text('Uzum'));
+    await tester.pump();
+    expect(find.text('Uzum orqali to‘lash'), findsOneWidget);
+    expect(find.textContaining('Uzum Bank ilovasi kerak emas'), findsOneWidget);
+
+    await tester.tap(find.text('Uzum orqali to‘lash'));
+    await tester.pump();
+    await tester.pump();
+    expect(api.payCalls.single.$1, 'uzum');
+    expect(opened, [Uri.parse('https://checkout.example.uz/pay/abc')]);
+    expect(
+      find.text('To‘lov sahifasini ochib bo‘lmadi. Qayta urinib ko‘ring.'),
+      findsNothing,
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('payment screen: a non-https web_url is never opened', (
+    tester,
+  ) async {
+    final opened = <Uri>[];
+    final api = FakeOrdersApi(details: {10248: detail(awaitingJson())})
+      ..payWebUrl = 'http://checkout.example.uz/pay/abc';
+    await pumpScreen(
+      tester,
+      const PaymentScreen(orderId: 10248),
+      api,
+      height: 1400,
+      settings: _settingsWith(['uzum']),
+      overrides: [
+        paymentPageOpenerProvider.overrideWithValue((url) async {
+          opened.add(url);
+          return true;
+        }),
+      ],
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Uzum orqali to‘lash'));
+    await tester.pump();
+    await tester.pump();
+    expect(api.payCalls.single.$1, 'uzum');
+    expect(opened, isEmpty);
+    expect(
+      find.text('To‘lov sahifasini ochib bo‘lmadi. Qayta urinib ko‘ring.'),
+      findsOneWidget,
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('payment screen: 503 provider_unavailable can be retried', (
+    tester,
+  ) async {
+    final opened = <Uri>[];
+    final api = FakeOrdersApi(details: {10248: detail(awaitingJson())})
+      ..payError = const ApiException(
+        status: 503,
+        code: 'provider_unavailable',
+        message: '',
+      );
+    await pumpScreen(
+      tester,
+      const PaymentScreen(orderId: 10248),
+      api,
+      height: 1400,
+      settings: _settingsWith(['uzum']),
+      overrides: [
+        paymentPageOpenerProvider.overrideWithValue((url) async {
+          opened.add(url);
+          return true;
+        }),
+      ],
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Uzum orqali to‘lash'));
+    await tester.pump();
+    await tester.pump();
+    expect(
+      find.text(
+        'To‘lov xizmati javob bermadi. Birozdan so‘ng qayta urinib ko‘ring.',
+      ),
+      findsOneWidget,
+    );
+    expect(opened, isEmpty);
+
+    api.payError = null;
+    await tester.tap(find.text('Uzum orqali to‘lash'));
+    await tester.pump();
+    await tester.pump();
+    expect(api.payCalls.map((c) => c.$1), ['uzum', 'uzum']);
+    expect(opened, hasLength(1));
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  test('paymentPageUri accepts absolute https pages only', () {
+    expect(
+      paymentPageUri('https://checkout.example.uz/pay/abc'),
+      Uri.parse('https://checkout.example.uz/pay/abc'),
+    );
+    expect(paymentPageUri('http://checkout.example.uz/pay'), isNull);
+    expect(paymentPageUri('javascript:alert(1)'), isNull);
+    expect(paymentPageUri('uzumbank://pay'), isNull);
+    expect(paymentPageUri('/pay/abc'), isNull);
+    expect(paymentPageUri('https:///pay'), isNull);
+    expect(paymentPageUri(''), isNull);
+  });
 
   testWidgets('payment screen: in progress replaces the countdown', (
     tester,

@@ -150,6 +150,19 @@ void main() {
       expect(canPay(cart(), settings(sales: false)), isFalse);
     });
 
+    test('Uzum alone is enough; only unknown providers block checkout', () {
+      expect(
+        payBlockReason(cart(), settings(providers: const ['uzum'])),
+        isNull,
+      );
+      expect(canPay(cart(), settings(providers: const ['uzum'])), isTrue);
+      expect(
+        payBlockReason(cart(), settings(providers: const ['octo'])),
+        same(CartText.noPayments),
+      );
+      expect(canPay(cart(), settings(providers: const ['octo'])), isFalse);
+    });
+
     test('an empty cart cannot be paid', () {
       expect(canPay(cart(items: const []), settings()), isFalse);
     });
