@@ -53,6 +53,27 @@
                 <data android:scheme="glowderma" android:host="payment" />
             </intent-filter>
         </activity>
+        <!--
+          Facebook sign-in (flutter_facebook_auth). The ids come from android/app/build.gradle.kts
+          (FACEBOOK_APP_ID / FACEBOOK_CLIENT_TOKEN, docs/env.md). The "fb" prefix keeps a numeric
+          app id a string for the SDK. Without ids the SDK stays uninitialised (the button is hidden).
+          No app events or advertiser id: the SDK is used for sign-in only.
+        -->
+        <meta-data android:name="com.facebook.sdk.ApplicationId" android:value="fb${facebookAppId}" />
+        <meta-data android:name="com.facebook.sdk.ClientToken" android:value="${facebookClientToken}" />
+        <meta-data android:name="com.facebook.sdk.AutoLogAppEventsEnabled" android:value="false" />
+        <meta-data android:name="com.facebook.sdk.AdvertiserIDCollectionEnabled" android:value="false" />
+        <!-- Facebook Login in a browser tab when the Facebook app is not installed. -->
+        <activity
+            android:name="com.facebook.CustomTabActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="${facebookLoginScheme}" />
+            </intent-filter>
+        </activity>
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
@@ -74,5 +95,7 @@
             <action android:name="android.intent.action.DIAL" />
             <data android:scheme="tel" />
         </intent>
+        <!-- Facebook sign-in through the installed Facebook app. -->
+        <package android:name="com.facebook.katana" />
     </queries>
 </manifest>

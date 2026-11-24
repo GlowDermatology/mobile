@@ -87,3 +87,41 @@ Without these, nobody can sign up or pay outside local fake mode. Each provider'
 
 Set `MIN_APP_VERSION_IOS` / `MIN_APP_VERSION_ANDROID` in `backend.env` when an old version must stop working: the
 API then answers 426 and the app shows an "update" screen with the store link.
+
+## 7. Google and Facebook sign-in (optional)
+
+The app shows "Google bilan davom etish" / "Facebook bilan davom etish" only when their ids are in the build; phone
+and e-mail sign-in work without them. Where each id goes is summed up in [env.md](env.md) ("Social sign-in ids").
+
+**Google** (<https://console.cloud.google.com>, one project for the app and the website):
+1. *APIs & Services → OAuth consent screen*: app name "Glow Derma", support e-mail, the website's domain; publish it.
+2. *Credentials → Create credentials → OAuth client ID*, three times:
+   - **Web application** (no redirect URI needed for the app). Its client id is `GOOGLE_SERVER_CLIENT_ID`.
+   - **Android**: package `uz.glowderma.app` and the **SHA-1** of the signing certificate. Create one Android client
+     per key you sign with: the debug key (`keytool -list -v -keystore ~/.android/debug.keystore -alias
+     androiddebugkey -storepass android`, also the key of CI's debug APK built on your machine), your upload key
+     (`keytool -list -v -keystore ~/glowderma-upload.jks -alias upload`) and Play's **app signing key** (Play
+     Console → *App integrity*). Without the right SHA-1, Google answers "developer error" and the button does
+     nothing. The Android client id itself is not pasted anywhere.
+   - **iOS**: bundle id `uz.glowderma.app`. Its client id is `GOOGLE_IOS_CLIENT_ID`; its "iOS URL scheme" goes into
+     `GOOGLE_REVERSED_CLIENT_ID` in `ios/Flutter/Social.xcconfig`.
+3. Paste `GOOGLE_SERVER_CLIENT_ID` and `GOOGLE_IOS_CLIENT_ID` into the preset you build with
+   (`tool/defines/staging.json`, `tool/defines/production.json`).
+4. Backend: `GOOGLE_APP_CLIENT_IDS=<web client id>,<iOS client id>` in `backend.env` and `OAUTH_MODE=live` (live mode
+   also requires the staff OAuth settings, see the backend's `config/settings/production.py`).
+
+**Facebook** (<https://developers.facebook.com> → *My Apps → Create app → Authenticate and request data from users
+with Facebook Login*):
+1. *App settings → Basic*: the **App ID**; *App settings → Advanced → Security*: the **Client token**. Add the
+   privacy policy URL (the website's `/privacy`) and switch the app to *Live*.
+2. *Facebook Login → Settings*: add the **Android** platform with package `uz.glowderma.app`, class
+   `uz.glowderma.app.MainActivity` and the **key hashes** of the same signing keys as above (base64 of the SHA-1:
+   `keytool -exportcert -alias upload -keystore ~/glowderma-upload.jks | openssl sha1 -binary | openssl base64`,
+   and Play's app signing SHA-1 converted the same way); add the **iOS** platform with bundle id `uz.glowderma.app`.
+3. Paste `FACEBOOK_APP_ID` and `FACEBOOK_CLIENT_TOKEN` into the preset (Android reads them from there too) and into
+   `ios/Flutter/Social.xcconfig`.
+4. Backend: `FACEBOOK_APP_ID` in `backend.env`, `FACEBOOK_APP_SECRET` in Vault, `OAUTH_MODE=live`.
+
+The ids are public identifiers (they ship inside the app) and may be committed; the app secret never leaves the
+server. Rebuild the app after changing them.
+

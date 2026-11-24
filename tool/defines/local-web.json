@@ -3,5 +3,9 @@
   "ALLOW_DEV_TOOLS": true,
   "PLATFORM_OVERRIDE": "android",
   "E2E": true,
-  "FIREBASE_ENABLED": false
+  "FIREBASE_ENABLED": false,
+  "GOOGLE_SERVER_CLIENT_ID": "",
+  "GOOGLE_IOS_CLIENT_ID": "",
+  "FACEBOOK_APP_ID": "",
+  "FACEBOOK_CLIENT_TOKEN": ""
 }

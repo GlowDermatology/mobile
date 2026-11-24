@@ -14,6 +14,32 @@ val keystoreProperties = Properties().apply {
     if (file.exists()) file.inputStream().use { load(it) }
 }
 
+// Social sign-in ids (public identifiers, docs/env.md). Each comes from the dart-define of the
+// same name (tool/defines/<preset>.json, passed by Flutter as -Pdart-defines), else a Gradle
+// property (-PFACEBOOK_APP_ID=… or ~/.gradle/gradle.properties), else an environment variable,
+// else empty: the Facebook SDK then stays uninitialised and the app hides its button.
+val dartDefines: Map<String, String> =
+    (findProperty("dart-defines") as String?)
+        ?.split(",")
+        ?.mapNotNull { encoded ->
+            val decoded = runCatching {
+                String(java.util.Base64.getDecoder().decode(encoded), Charsets.UTF_8)
+            }.getOrNull() ?: return@mapNotNull null
+            val equals = decoded.indexOf('=')
+            if (equals > 0) decoded.substring(0, equals) to decoded.substring(equals + 1) else null
+        }
+        ?.toMap()
+        ?: emptyMap()
+
+fun publicId(name: String): String =
+    listOf(dartDefines[name], findProperty(name) as String?, System.getenv(name))
+        .firstOrNull { !it.isNullOrBlank() }
+        ?.trim()
+        ?: ""
+
+val facebookAppId = publicId("FACEBOOK_APP_ID")
+val facebookClientToken = publicId("FACEBOOK_CLIENT_TOKEN")
+
 android {
     namespace = "uz.glowderma.app"
     // 37: required by flutter_local_notifications 23 and current AndroidX (targetSdk stays
@@ -34,6 +60,14 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders += mapOf(
+            "facebookAppId" to facebookAppId,
+            "facebookClientToken" to facebookClientToken,
+            // The browser fallback of Facebook Login returns to fb<app id>://. Without an app id
+            // a scheme nobody uses, so the app never claims the Facebook app's own fb://.
+            "facebookLoginScheme" to
+                if (facebookAppId.isEmpty()) "uz.glowderma.app.nofacebook" else "fb$facebookAppId",
+        )
     }
 
     signingConfigs {
