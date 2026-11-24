@@ -31,11 +31,14 @@ import '../features/profile/presentation/sessions_screen.dart';
 import '../features/profile/presentation/settings_screen.dart';
 import 'shell.dart';
 
-/// Screens a guest may open; everything else asks to sign in first.
+/// Screens a guest may open; everything else asks to sign in first. The QR
+/// and cart tabs show their own "Kirish" view, so a guest keeps the tab bar.
 bool isPublicLocation(String path) =>
     path == '/catalog' ||
     path.startsWith('/catalog/') ||
     path.startsWith('/product/') ||
+    path == '/qr' ||
+    path == '/cart' ||
     path == '/ai' ||
     path == '/settings' ||
     path.startsWith('/settings/legal/') ||

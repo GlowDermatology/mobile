@@ -106,4 +106,15 @@ abstract final class LoyaltyText {
     'Не удалось загрузить. Повторить',
     'Could not load. Try again',
   );
+  static const signedOutTitle = Tr(
+    'QR kod va cashback',
+    'QR-код и кешбэк',
+    'QR code and cashback',
+  );
+  static const signedOutBody = Tr(
+    'Do‘kondagi xaridlarda cashback yig‘ish va ishlatish uchun hisobingizga kiring.',
+    'Войдите, чтобы копить и тратить кешбэк при покупках в магазине.',
+    'Sign in to earn and spend cashback on your purchases in the store.',
+  );
+  static const signIn = Tr('Kirish', 'Войти', 'Sign in');
 }
