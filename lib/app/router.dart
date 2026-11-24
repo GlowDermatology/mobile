@@ -204,18 +204,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/consent', builder: (_, _) => const ConsentScreen()),
       GoRoute(
         path: '/auth',
-        builder: (_, s) => AuthPhoneScreen(next: s.uri.queryParameters['next']),
+        builder: (_, s) => AuthScreen(
+          next: s.uri.queryParameters['next'],
+          mode: AuthMode.fromQuery(s.uri.queryParameters['mode']),
+        ),
       ),
       GoRoute(
         path: '/auth/otp',
         builder: (_, s) =>
             OtpScreen(args: s.extra is OtpArgs ? s.extra! as OtpArgs : null),
-      ),
-      GoRoute(
-        path: '/auth/password',
-        builder: (_, s) => PasswordScreen(
-          args: s.extra is PasswordArgs ? s.extra! as PasswordArgs : null,
-        ),
       ),
       GoRoute(
         path: '/auth/register',
@@ -227,6 +224,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/auth/reset',
         builder: (_, s) => ResetPasswordScreen(
           args: s.extra is RegisterArgs ? s.extra! as RegisterArgs : null,
+        ),
+      ),
+      GoRoute(
+        path: '/auth/social',
+        builder: (_, s) => SocialCompleteScreen(
+          args: s.extra is SocialArgs ? s.extra! as SocialArgs : null,
         ),
       ),
     ],

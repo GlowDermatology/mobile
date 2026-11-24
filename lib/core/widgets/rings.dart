@@ -76,19 +76,36 @@ class GdLogo extends StatelessWidget {
   );
 }
 
-/// "Glow Derma" wordmark in the display face.
+/// "Glow Derma" wordmark in the display face. With [onTap] it is a button
+/// (home: back to the catalog), like a website logo.
 class GdWordmark extends StatelessWidget {
-  const GdWordmark({super.key, this.color, this.size = 28});
+  const GdWordmark({super.key, this.color, this.size = 28, this.onTap});
   final Color? color;
   final double size;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Text(
-    'Glow Derma',
-    style: context.gdText.title.copyWith(
-      fontSize: size,
-      height: 1.1,
-      color: color ?? context.gd.ink,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final text = Text(
+      'Glow Derma',
+      style: context.gdText.title.copyWith(
+        fontSize: size,
+        height: 1.1,
+        color: color ?? context.gd.ink,
+      ),
+    );
+    if (onTap == null) return text;
+    return Semantics(
+      identifier: 'wordmark',
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          child: text,
+        ),
+      ),
+    );
+  }
 }
