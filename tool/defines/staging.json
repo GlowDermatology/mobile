@@ -1,4 +1,4 @@
 {
-  "API_BASE_URL": "https://staging.glowderma.uz/api/v1/",
+  "API_BASE_URL": "https://website-project.uz/api/v1/",
   "FIREBASE_ENABLED": false
 }
