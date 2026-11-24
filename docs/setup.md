@@ -57,12 +57,13 @@ The app runs without Firebase; push notifications stay off until this is done.
    directly.
 5. Backend: once published, set `PLAY_STORE_URL` in `backend.env`.
 
-## 4. SMS (Eskiz) and payments (Click, Payme)
+## 4. SMS (DevSMS) and payments (Click, Payme)
 
 Without these, nobody can sign up or pay outside local fake mode. Each provider's go-live checklist is in
 `backend/docs/integrations/*.md`. In short:
 
-- Eskiz: `ESKIZ_MODE=live`, `ESKIZ_SENDER` in `backend.env`; `ESKIZ_EMAIL`, `ESKIZ_PASSWORD` in Vault.
+- DevSMS: `DEVSMS_MODE=live` and `DEVSMS_API_TOKEN` in Vault (`secret/<env>/django`); codes go through DevSMS's
+  universal OTP templates from the shared sender 4546 (backend `docs/integrations/devsms.md`).
 - Click: `CLICK_MODE=live`, `CLICK_SERVICE_ID`, `CLICK_MERCHANT_ID`, `CLICK_MERCHANT_USER_ID` in `backend.env`;
   `CLICK_SECRET_KEY` in Vault.
 - Payme: `PAYME_MODE=live`, `PAYME_MERCHANT_ID` in `backend.env`; `PAYME_KEY` in Vault.

@@ -25,7 +25,7 @@ Nothing below had to change for this app; these are the go-live switches (see se
 |---|---|---|
 | `FCM_MODE=live`, `FCM_PROJECT_ID` | backend.env | push notifications |
 | `FCM_CREDENTIALS_JSON_B64`, `FCM_CREDENTIALS_FILE=/run/secrets/fcm.json` | Vault | Firebase service account |
-| `ESKIZ_MODE=live`, `ESKIZ_SENDER` / `ESKIZ_EMAIL`, `ESKIZ_PASSWORD` | backend.env / Vault | SMS codes (sign-up, new device, password reset) |
+| `DEVSMS_MODE=live`, `DEVSMS_API_TOKEN` | Vault | SMS codes (sign-up, new device, password reset) |
 | `CLICK_MODE=live`, `CLICK_SERVICE_ID`, `CLICK_MERCHANT_ID`, `CLICK_MERCHANT_USER_ID` / `CLICK_SECRET_KEY` | backend.env / Vault | Click payments |
 | `PAYME_MODE=live`, `PAYME_MERCHANT_ID` / `PAYME_KEY` | backend.env / Vault | Payme payments |
 | `MIN_APP_VERSION_IOS`, `MIN_APP_VERSION_ANDROID`, `APP_STORE_URL`, `PLAY_STORE_URL` | backend.env | forced updates and store links |
