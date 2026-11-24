@@ -599,12 +599,20 @@ class _WelcomeHero extends StatelessWidget {
                         tooltip: Strings.close.of(context),
                       ),
                     ),
-                    GdWordmark(
-                      color: c.bannerInk,
-                      size: 28,
-                      onTap: () => context.go('/catalog'),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: GdWordmark(
+                            color: c.bannerInk,
+                            size: 28,
+                            onTap: () => context.go('/catalog'),
+                          ),
+                        ),
+                      ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     Semantics(
                       identifier: 'auth.language',
                       button: true,
