@@ -158,6 +158,41 @@ void main() {
       expect(body['cashback_to_use'], 0);
       expect(body['customer_note'], '');
     });
+
+    test('Uzum alone is sent; unknown providers are skipped', () {
+      expect(
+        buildCheckoutBody(
+          quote: delivery,
+          paymentProviders: const ['uzum'],
+          note: '',
+        )['payment_provider'],
+        'uzum',
+      );
+      expect(
+        buildCheckoutBody(
+          quote: delivery,
+          paymentProviders: const ['octo', 'uzum', 'click'],
+          note: '',
+        )['payment_provider'],
+        'uzum',
+      );
+      expect(
+        buildCheckoutBody(
+          quote: delivery,
+          paymentProviders: const ['octo'],
+          note: '',
+        )['payment_provider'],
+        isNull,
+      );
+      expect(
+        buildCheckoutBody(
+          quote: delivery,
+          paymentProviders: const [],
+          note: '',
+        )['payment_provider'],
+        isNull,
+      );
+    });
   });
 
   test('StockProblem.listFrom reads OUT_OF_STOCK details', () {

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/json.dart';
+import '../../settings/data/public_settings.dart';
 
 /// `FulfilmentMethod` (contract §2.6).
 abstract final class Fulfilment {
@@ -268,7 +269,8 @@ Map<String, Object?> buildCalculateBody({
 /// total are copied unchanged from the last [quote] (the selected option's
 /// total when it has options); a Yandex choice sends its `delivery_quote_id`,
 /// BTS and pickup send the released body. The provider is the first one the
-/// shop offers (the final choice is made on the pay screen).
+/// shop offers that this app knows (the final choice is made on the pay
+/// screen); null when there is none.
 Map<String, Object?> buildCheckoutBody({
   required DeliveryQuote quote,
   required List<String> paymentProviders,
@@ -280,9 +282,9 @@ Map<String, Object?> buildCheckoutBody({
   return {
     'fulfilment': quote.fulfilment,
     'address_id': delivery ? quote.addressId : null,
-    'payment_provider': paymentProviders.isEmpty
-        ? null
-        : paymentProviders.first,
+    'payment_provider': paymentProviders
+        .where(knownPaymentProviders.contains)
+        .firstOrNull,
     'cashback_to_use': quote.cashbackToUse,
     'expected_total': option != null && option.available
         ? (option.expectedTotal ?? quote.expectedTotal)

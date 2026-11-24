@@ -210,6 +210,27 @@ void main() {
       expect(canPay(cart, _settings), isFalse);
     });
 
+    test('an Uzum order in flight blocks too, with Uzum the only provider', () {
+      const uzumOnly = PublicSettings({
+        'payment_providers': ['uzum'],
+        'online_sales_enabled': true,
+        'fulfilment_methods': ['delivery', 'pickup'],
+      });
+      final cart = Cart.fromJson(
+        _cartJson(
+          order: awaitingJson(provider: 'uzum', inProgress: true),
+          items: [_line(4, 'Krem')],
+        ),
+      );
+      expect(cart.hasUnpaidOrder, isTrue);
+      expect(
+        recoveryPhase(cart.checkoutOrder!, DateTime.now()),
+        RecoveryPhase.confirming,
+      );
+      expect(payBlockReason(cart, uzumOnly), CartText.recoveryResolveFirst);
+      expect(canPay(cart, uzumOnly), isFalse);
+    });
+
     test('an expired or cancelled checkout does not block', () {
       final cart = Cart.fromJson(
         _cartJson(order: _cancelled(), items: [_line(4, 'Krem')]),

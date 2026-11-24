@@ -57,15 +57,19 @@ The app runs without Firebase; push notifications stay off until this is done.
    directly.
 5. Backend: once published, set `PLAY_STORE_URL` in `backend.env`.
 
-## 4. SMS (Eskiz) and payments (Click, Payme)
+## 4. SMS (DevSMS) and payments (Click, Payme, Uzum)
 
 Without these, nobody can sign up or pay outside local fake mode. Each provider's go-live checklist is in
 `backend/docs/integrations/*.md`. In short:
 
-- Eskiz: `ESKIZ_MODE=live`, `ESKIZ_SENDER` in `backend.env`; `ESKIZ_EMAIL`, `ESKIZ_PASSWORD` in Vault.
+- DevSMS: `DEVSMS_MODE=live` and `DEVSMS_API_TOKEN` in Vault (`secret/<env>/django`); codes go through DevSMS's
+  universal OTP templates from the shared sender 4546 (backend `docs/integrations/devsms.md`).
 - Click: `CLICK_MODE=live`, `CLICK_SERVICE_ID`, `CLICK_MERCHANT_ID`, `CLICK_MERCHANT_USER_ID` in `backend.env`;
   `CLICK_SECRET_KEY` in Vault.
 - Payme: `PAYME_MODE=live`, `PAYME_MERCHANT_ID` in `backend.env`; `PAYME_KEY` in Vault.
+- Uzum (Uzum Bank Checkout, a card form opened in the browser): `UZUM_CHECKOUT_BASE_URL`, `UZUM_TERMINAL_ID` and
+  `UZUM_ORDER_PREFIX` in `backend.env`, `UZUM_API_KEY` and `UZUM_CALLBACK_TOKEN` in Vault, then `UZUM_MODE=live` last
+  (`backend/docs/integrations/uzum.md`). The app needs no change; Uzum shows up once the API lists it.
 - Yandex courier delivery: `YANDEX_DELIVERY_MODE=live` in `backend.env`, `YANDEX_DELIVERY_TOKEN` in Vault, and the
   warehouse, methods and opening hours filled in on the ops console's delivery settings page
   (`backend/docs/integrations/yandex-delivery.md`). Until then the app offers BTS and pickup only.

@@ -245,6 +245,9 @@ class FakeOrdersApi implements OrdersApi {
 
   /// Thrown by [pay] when set (e.g. a 409 `payment_in_progress`).
   Object? payError;
+
+  /// The `web_url` [pay] answers.
+  String payWebUrl = 'https://example.com/pay';
   final payCalls = <(String?, String)>[];
 
   @override
@@ -261,7 +264,7 @@ class FakeOrdersApi implements OrdersApi {
       provider: provider ?? 'click',
       amount: 0,
       payBy: null,
-      webUrl: 'https://example.com/pay',
+      webUrl: payWebUrl,
     );
   }
 
@@ -323,12 +326,21 @@ class _SignedIn extends SessionController {
   AuthState build() => const AuthState(signedIn: true);
 }
 
+/// What [pumpScreen] answers for `GET settings/public/` unless told otherwise.
+const defaultSettings = PublicSettings({
+  'payment_providers': ['click', 'payme'],
+  'online_sales_enabled': true,
+});
+
 /// Pumps [screen] on a 390-wide phone; [height] > 844 shows long pages whole.
+/// [settings] stands in for `GET settings/public/` (Riverpod refuses a second
+/// override of the same provider, so it cannot go through [overrides]).
 Future<void> pumpScreen(
   WidgetTester tester,
   Widget screen,
   FakeOrdersApi api, {
   double height = 844,
+  PublicSettings settings = defaultSettings,
   List<Override> overrides = const [],
 }) async {
   tester.view.physicalSize = Size(390, height) * 3;
@@ -340,13 +352,8 @@ Future<void> pumpScreen(
         sessionProvider.overrideWith(_SignedIn.new),
         languageProvider.overrideWith(_Uz.new),
         ordersApiProvider.overrideWithValue(api),
+        publicSettingsProvider.overrideWith((ref) async => settings),
         ...overrides,
-        publicSettingsProvider.overrideWith(
-          (ref) async => const PublicSettings({
-            'payment_providers': ['click', 'payme'],
-            'online_sales_enabled': true,
-          }),
-        ),
       ],
       child: MaterialApp(
         theme: buildTheme(Brightness.light),

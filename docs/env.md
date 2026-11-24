@@ -25,11 +25,12 @@ Nothing below had to change for this app; these are the go-live switches (see se
 |---|---|---|
 | `FCM_MODE=live`, `FCM_PROJECT_ID` | backend.env | push notifications |
 | `FCM_CREDENTIALS_JSON_B64`, `FCM_CREDENTIALS_FILE=/run/secrets/fcm.json` | Vault | Firebase service account |
-| `ESKIZ_MODE=live`, `ESKIZ_SENDER` / `ESKIZ_EMAIL`, `ESKIZ_PASSWORD` | backend.env / Vault | SMS codes (sign-up, new device, password reset) |
+| `DEVSMS_MODE=live`, `DEVSMS_API_TOKEN` | Vault | SMS codes (sign-up, new device, password reset) |
 | `CLICK_MODE=live`, `CLICK_SERVICE_ID`, `CLICK_MERCHANT_ID`, `CLICK_MERCHANT_USER_ID` / `CLICK_SECRET_KEY` | backend.env / Vault | Click payments |
 | `PAYME_MODE=live`, `PAYME_MERCHANT_ID` / `PAYME_KEY` | backend.env / Vault | Payme payments |
+| `UZUM_MODE=live`, `UZUM_CHECKOUT_BASE_URL`, `UZUM_TERMINAL_ID`, `UZUM_ORDER_PREFIX` / `UZUM_API_KEY`, `UZUM_CALLBACK_TOKEN` | backend.env / Vault | Uzum Bank Checkout payments (card form in the browser) |
 | `MIN_APP_VERSION_IOS`, `MIN_APP_VERSION_ANDROID`, `APP_STORE_URL`, `PLAY_STORE_URL` | backend.env | forced updates and store links |
-| `PAYMENT_RETURN_URL` | compose (derived from `SITE_DOMAIN`) | where Click/Payme send app payers: `https://<domain>/pay/return` |
+| `PAYMENT_RETURN_URL` | compose (derived from `SITE_DOMAIN`) | where Click/Payme/Uzum send app payers: `https://<domain>/pay/return` |
 | `YANDEX_DELIVERY_MODE=live` / `YANDEX_DELIVERY_TOKEN` | backend.env / Vault | Yandex courier delivery (also needs the warehouse, methods and opening hours on the ops console's delivery settings page) |
 | `YANDEX_DELIVERY_PILOT_CUSTOMER_IDS` | backend.env | optional: offer Yandex to these customer ids only |
 

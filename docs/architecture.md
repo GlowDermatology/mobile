@@ -63,7 +63,11 @@ the original when a variant is missing (`GdImage.fallbackUrl`).
 ## Payments
 
 Checkout creates the order (stock reserved for `reservation_minutes`), the payment screen asks the API for the
-Click/Payme page and opens it in the **system browser** (never a web view). The provider sends the customer to
+Click, Payme or Uzum page and opens it in the **system browser** (never a web view); a `web_url` that is not https is
+never opened. Uzum is Uzum Bank's hosted card form (Uzcard, Humo, Visa, Mastercard): the customer does not need the
+Uzum Bank app, and its `pay_by` may end before the reservation (the form's session). The providers come from
+`payment_providers` in `GET settings/public/`; values the app does not know are dropped, so a provider added on the
+server later never reaches the picker or the checkout body. The provider sends the customer to
 `https://glowderma.uz/pay/return?order_id=N`, which opens the app (App Links / universal links, configured by the
 website's `.well-known` files) or, failing that, the website page hands over through `glowderma://payment/return`.
 The app then polls the order every 2 s for up to a minute, and again whenever it comes back to the foreground.
@@ -93,6 +97,6 @@ errors, ledger lines) are shown as they come, in the language sent in `Accept-La
 | AI tab is a placeholder | the backend has no AI endpoints yet (contract: "Phase 2") |
 | Cart checkboxes remove selected lines | the API always checks out the whole cart |
 | "Mashhur mahsulotlar" = promo products, then newest | the API has no popularity ordering |
-| No cash payment | the API offers Click and Payme only; the row is shown disabled ("Tez orada") |
+| No cash payment | the API offers Click, Payme and Uzum only; the row is shown disabled ("Tez orada") |
 | OpenStreetMap tiles, no geocoding | no API key needed, same as the website; a paid tile provider can be set with `MAP_TILE_URL` |
 | The app never adds up a delivery fee | every price and total comes from the server's quote |

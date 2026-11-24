@@ -42,7 +42,7 @@ PaymentPhase phaseOf(OrderDetail order, DateTime now) {
 }
 
 /// State of the payment screen: the order, a 1-second countdown to `pay_by`
-/// and the status polling after the customer comes back from Click/Payme.
+/// and the status polling after the customer comes back from the provider (Click, Payme, Uzum).
 ///
 /// * [startPolling] re-reads the order every [pollInterval] for at most
 ///   [pollTimeout], stopping as soon as the order is no longer awaiting

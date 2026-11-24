@@ -21,8 +21,25 @@ import '../../orders/presentation/order_actions.dart';
 import '../../orders/presentation/orders_text.dart';
 import '../../settings/data/public_settings.dart';
 
+/// Opens a provider's payment page in the system browser (never a WebView,
+/// see `docs/architecture.md`); swappable in tests.
+typedef PaymentPageOpener = Future<bool> Function(Uri url);
+
+final paymentPageOpenerProvider = Provider<PaymentPageOpener>(
+  (ref) =>
+      (url) => launchUrl(url, mode: LaunchMode.externalApplication),
+);
+
+/// The page `POST orders/{id}/pay/` sent for [webUrl], or null when it is not
+/// an absolute https URL (such a link is never opened).
+Uri? paymentPageUri(String webUrl) {
+  final uri = Uri.tryParse(webUrl.trim());
+  if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) return null;
+  return uri;
+}
+
 /// "To‘lov" (PDF p.6): the reservation countdown, the provider choice and the
-/// hand-off to Click/Payme in the system browser; polls the order on return
+/// hand-off to Click/Payme/Uzum in the system browser; polls the order on return
 /// and on every app resume until it is paid (contract §2.7.2).
 class PaymentScreen extends ConsumerStatefulWidget {
   const PaymentScreen({
@@ -113,11 +130,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               .pay(_id, provider, idempotencyKey: key),
         ),
       );
-      final uri = Uri.tryParse(result.webUrl);
+      final uri = paymentPageUri(result.webUrl);
       var opened = false;
       if (uri != null) {
         try {
-          opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+          opened = await ref.read(paymentPageOpenerProvider)(uri);
         } on Object {
           opened = false;
         }
@@ -141,6 +158,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         case 'order_expired' || 'already_paid' || 'not_payable':
           showError(context, e);
           await _controller.refresh();
+        case 'provider_unavailable':
+          // The provider did not register the page (503): nothing was
+          // stored, so the same tap can simply be tried again.
+          showSnack(
+            context,
+            e.message.isNotEmpty
+                ? e.message
+                : OrdersText.providerUnavailable.of(context),
+          );
         default:
           showError(context, e);
       }
@@ -198,7 +224,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         final order = _controller.order;
         final providers =
             settings?.paymentProviders ??
-            [if (order?.payment.provider != null) order!.payment.provider!];
+            [
+              if (knownPaymentProviders.contains(order?.payment.provider))
+                order!.payment.provider!,
+            ];
         final selected = _selected(providers);
         return Scaffold(
           appBar: GdHeader(title: OrdersText.payTitle.of(context)),
@@ -343,7 +372,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(OrdersText.safetyNote.of(context), style: t.bodySm),
+                child: Text(
+                  (selected == 'uzum'
+                          ? OrdersText.uzumSafetyNote
+                          : OrdersText.safetyNote)
+                      .of(context),
+                  style: t.bodySm,
+                ),
               ),
             ],
           ),
@@ -533,6 +568,7 @@ class _ProviderCard extends StatelessWidget {
     final hint = switch (provider) {
       'click' => OrdersText.clickHint.of(context),
       'payme' => OrdersText.paymeHint.of(context),
+      'uzum' => OrdersText.uzumHint.of(context),
       _ => OrdersText.providerHint.fmt(context, {'p': name}),
     };
     final radius = BorderRadius.circular(GdRadius.lg);

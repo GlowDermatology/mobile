@@ -139,6 +139,39 @@ void main() {
     expect(none.offeredFulfilments, ['pickup']);
   });
 
+  test('payment providers: Uzum is kept, unknown values are dropped', () {
+    const all = PublicSettings({
+      'payment_providers': ['click', 'payme', 'uzum'],
+    });
+    expect(all.paymentProviders, ['click', 'payme', 'uzum']);
+    const future = PublicSettings({
+      'payment_providers': ['octo', 'uzum', 'uzum', 'click'],
+    });
+    expect(future.paymentProviders, ['uzum', 'click']);
+    const unknownOnly = PublicSettings({
+      'payment_providers': ['octo'],
+    });
+    expect(unknownOnly.paymentProviders, isEmpty);
+    expect(const PublicSettings({}).paymentProviders, isEmpty);
+  });
+
+  test('an Uzum pay link: a web form, no app link', () {
+    final link = PayResult.fromJson({
+      'order_id': 10261,
+      'provider': 'uzum',
+      'amount': 236000,
+      'pay_by': '2026-11-17T19:58:39+05:00',
+      'web_url': 'https://checkout.example.uz/pay/abc',
+      'app_url': null,
+      'return_url': 'https://glowderma.uz/pay/return?order_id=10261',
+    });
+    expect(link.provider, 'uzum');
+    expect(link.webUrl, 'https://checkout.example.uz/pay/abc');
+    expect(link.appUrl, isNull);
+    expect(link.payBy, isNotNull);
+    expect(providerName(link.provider), 'Uzum');
+  });
+
   test('address pins: both coordinates or none', () {
     expect(
       Address.fromJson({'id': 1, 'latitude': 41.36, 'longitude': 69.28}).pin,

@@ -8,7 +8,7 @@ apps). It talks to the same Django API as the website, through the customer cont
 |---|---|
 | **Katalog** | banners, categories, search, products, product page, add to cart |
 | **QR** | the in-store cashback QR (new code every 50 s), cashback balance and history |
-| **Savat** | server cart (with the unpaid order to finish or edit) → checkout (pickup, Yandex courier or BTS post, cashback) → Click / Payme → order and courier tracking |
+| **Savat** | server cart (with the unpaid order to finish or edit) → checkout (pickup, Yandex courier or BTS post, cashback) → Click / Payme / Uzum → order and courier tracking |
 | **AI** | placeholder ("Tez orada") — the backend has no AI endpoints yet |
 | **Sozlamalar** | profile, orders, appointments, specialists and booking, language, theme, legal texts, sessions, sign-out, account deletion |
 
