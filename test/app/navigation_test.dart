@@ -11,6 +11,8 @@ import 'package:glow_derma/core/i18n/tr.dart';
 import 'package:glow_derma/core/network/api_client.dart';
 import 'package:glow_derma/core/storage/secure_store.dart';
 import 'package:glow_derma/features/auth/application/session_controller.dart';
+import 'package:glow_derma/features/auth/data/auth_models.dart';
+import 'package:glow_derma/features/auth/presentation/auth_screens.dart';
 import 'package:glow_derma/features/catalog/data/catalog_api.dart';
 import 'package:glow_derma/features/settings/data/public_settings.dart';
 import 'package:go_router/go_router.dart';
@@ -36,6 +38,7 @@ class _FakeTheme extends ThemeModeController {
 /// is recorded (none should need a session).
 class _GuestApp {
   final adapter = ScriptedAdapter((o) => ScriptedAdapter.json(200, {}));
+  final authApi = FakeAuthApi();
   late final container = ProviderContainer(
     overrides: [
       languageProvider.overrideWith(FakeLanguage.new),
@@ -53,6 +56,7 @@ class _GuestApp {
         ),
       ),
       catalogApiProvider.overrideWithValue(FakeCatalogApi()),
+      authApiProvider.overrideWithValue(authApi),
       publicSettingsProvider.overrideWith(
         (ref) async => const PublicSettings({'terms_version': '2026-10'}),
       ),
@@ -165,6 +169,33 @@ void main() {
       expect(app.privateRequests, isEmpty);
     });
   }
+
+  testWidgets('signing in from a guest tab lands back on that tab', (
+    tester,
+  ) async {
+    // Regression: the sign-in screen is pushed over the shell, so the router's
+    // redirect never sees its `next`; the screen itself must go there.
+    final app = _GuestApp();
+    app.authApi.answer('login', LoginSignedIn(tokens()));
+    await app.pump(tester, '/cart');
+    await tapId(tester, 'cart.signIn');
+    expect(app.path, '/auth');
+    await tapId(tester, 'auth.channel.phone');
+    await typeInto(tester, 'auth.phone', '901234567');
+    await typeInto(tester, 'auth.password', 'Malika2026!');
+    await tapId(tester, 'auth.signIn');
+    expect(app.authApi.calls.single, startsWith('login phone:+998901234567'));
+    expect(app.path, '/cart');
+    expect(bySemantics('tab.catalog'), findsOneWidget);
+  });
+
+  test('a finished sign-in only goes to safe in-app locations', () {
+    expect(afterSignIn('/cart'), '/cart');
+    expect(afterSignIn(null), '/catalog');
+    expect(afterSignIn('/auth/otp'), '/catalog');
+    expect(afterSignIn('//evil.example'), '/catalog');
+    expect(afterSignIn('https://evil.example'), '/catalog');
+  });
 
   testWidgets('auth close goes to the catalog when nothing is under it', (
     tester,

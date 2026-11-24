@@ -88,6 +88,28 @@ class SocialArgs {
   final String? next;
 }
 
+/// Signs in with [tokens] and goes to [next] (the screen the user came from), or the catalog. The router is
+/// read before the session changes: the redirect that follows may already have replaced this screen.
+Future<void> completeSignIn(
+  BuildContext context,
+  WidgetRef ref,
+  Json tokens,
+  String? next,
+) async {
+  final router = GoRouter.maybeOf(context);
+  await ref.read(sessionProvider.notifier).signedIn(tokens);
+  router?.go(afterSignIn(next));
+}
+
+/// Where a finished sign-in lands: a safe in-app [next], else the catalog.
+String afterSignIn(String? next) =>
+    next != null &&
+        next.startsWith('/') &&
+        !next.startsWith('//') &&
+        !next.startsWith('/auth')
+    ? next
+    : '/catalog';
+
 /// Location of an auth step, keeping `next` so the router can return there
 /// once the session starts.
 String authRoute(String path, String? next, {AuthMode? mode}) {
@@ -237,7 +259,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         if (!mounted) return;
         switch (result) {
           case LoginSignedIn(:final tokens):
-            await ref.read(sessionProvider.notifier).signedIn(tokens);
+            if (!mounted) return;
+            await completeSignIn(context, ref, tokens, widget.next);
           case LoginNeedsCode(:final step):
             unawaited(
               context.push(
@@ -333,7 +356,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           if (!mounted) return;
           switch (answer) {
             case SocialSignedIn(:final tokens):
-              await ref.read(sessionProvider.notifier).signedIn(tokens);
+              if (!mounted) return;
+              await completeSignIn(context, ref, tokens, widget.next);
             case SocialNeedsCompletion(:final ticket):
               unawaited(
                 context.push(
@@ -759,7 +783,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         );
         switch (result) {
           case LoginSignedIn(:final tokens):
-            await ref.read(sessionProvider.notifier).signedIn(tokens);
+            if (!mounted) return;
+            await completeSignIn(context, ref, tokens, widget.args?.next);
             return;
           case LoginNeedsCode(:final issue):
             _issue = issue;
@@ -832,7 +857,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             otpChannel: _otpChannel,
           );
           if (result is LoginSignedIn) {
-            await ref.read(sessionProvider.notifier).signedIn(result.tokens);
+            if (!mounted) return;
+            await completeSignIn(
+              context,
+              ref,
+              result.tokens,
+              widget.args?.next,
+            );
           }
       }
     } on ApiException catch (e) {
@@ -1078,7 +1109,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             termsVersion: version,
             language: ref.read(languageProvider),
           );
-      await ref.read(sessionProvider.notifier).signedIn(tokens);
+      if (!mounted) return;
+      await completeSignIn(context, ref, tokens, widget.args?.next);
     } on ApiException catch (e) {
       if (!mounted) return;
       if (e.code == 'verification_invalid') {
@@ -1245,7 +1277,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       final tokens = await ref
           .read(authApiProvider)
           .resetPassword(args.verificationToken, _password.text);
-      await ref.read(sessionProvider.notifier).signedIn(tokens);
+      if (!mounted) return;
+      await completeSignIn(context, ref, tokens, widget.args?.next);
     } on ApiException catch (e) {
       if (!mounted) return;
       if (e.code == 'verification_invalid') {
@@ -1437,7 +1470,8 @@ class _SocialCompleteScreenState extends ConsumerState<SocialCompleteScreen> {
             termsVersion: version,
             language: ref.read(languageProvider),
           );
-      await ref.read(sessionProvider.notifier).signedIn(tokens);
+      if (!mounted) return;
+      await completeSignIn(context, ref, tokens, widget.args?.next);
     });
   }
 
@@ -1493,7 +1527,8 @@ class _SocialCompleteScreenState extends ConsumerState<SocialCompleteScreen> {
               password: password,
               language: ref.read(languageProvider),
             );
-        await ref.read(sessionProvider.notifier).signedIn(tokens);
+        if (!mounted) return;
+        await completeSignIn(context, ref, tokens, widget.args?.next);
       } on ApiException catch (e) {
         if (password == null && e.fieldErrors.containsKey('password')) {
           needsPassword = true;
