@@ -1,7 +1,7 @@
 {
   "API_BASE_URL": "https://glowderma.uz/api/v1/",
   "FIREBASE_ENABLED": false,
-  "GOOGLE_SERVER_CLIENT_ID": "",
+  "GOOGLE_SERVER_CLIENT_ID": "433191023141-bdpuni6k4mr7tre535jpdsbce377nkau.apps.googleusercontent.com",
   "GOOGLE_IOS_CLIENT_ID": "",
   "FACEBOOK_APP_ID": "",
   "FACEBOOK_CLIENT_TOKEN": ""
