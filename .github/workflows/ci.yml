@@ -171,7 +171,9 @@ jobs:
           flutter config --no-analytics
           flutter build apk --debug --dart-define-from-file=tool/defines/staging.json
           if [ -n "$STAGING_KEYSTORE_BASE64" ]; then
-            "$JAVA_HOME/bin/keytool" -printcert -jarfile build/app/outputs/flutter-apk/app-debug.apk | grep -E "SHA1:"
+            # the SHA-1 to compare with the Android OAuth client (keytool cannot read v2+ APK signatures)
+            apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
+            "$apksigner" verify --print-certs build/app/outputs/flutter-apk/app-debug.apk | grep -i "SHA-1"
           fi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
