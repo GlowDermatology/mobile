@@ -103,6 +103,14 @@ and e-mail sign-in work without them. Where each id goes is summed up in [env.md
      (`keytool -list -v -keystore ~/glowderma-upload.jks -alias upload`) and Play's **app signing key** (Play
      Console → *App integrity*). Without the right SHA-1, Google answers "developer error" and the button does
      nothing. The Android client id itself is not pasted anywhere.
+   - **CI's staging APK** is signed with one fixed key (otherwise every CI run would sign with a new throwaway
+     key, whose SHA-1 Google cannot know). Create it once:
+     `keytool -genkey -v -keystore glowderma-staging.jks -alias staging -keyalg RSA -keysize 2048 -validity 10000`
+     (Windows: `"C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe"`). Register its SHA-1
+     (`keytool -list -v -keystore glowderma-staging.jks -alias staging`) on an Android client. Then add the
+     repository secrets `ANDROID_STAGING_KEYSTORE_BASE64` (the `.jks` file in base64),
+     `ANDROID_STAGING_KEYSTORE_PASSWORD` and `ANDROID_STAGING_KEY_ALIAS` (`staging`). The `build-android` job
+     prints the APK's SHA-1 so you can compare it.
    - **iOS**: bundle id `uz.glowderma.app`. Its client id is `GOOGLE_IOS_CLIENT_ID`; its "iOS URL scheme" goes into
      `GOOGLE_REVERSED_CLIENT_ID` in `ios/Flutter/Social.xcconfig`.
 3. Paste `GOOGLE_SERVER_CLIENT_ID` and `GOOGLE_IOS_CLIENT_ID` into the preset you build with
