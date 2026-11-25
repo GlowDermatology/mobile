@@ -72,6 +72,17 @@ android {
     }
 
     signingConfigs {
+        // The fixed key of CI's staging APK (docs/setup.md §7): every build gets the same SHA-1,
+        // which Google sign-in's Android OAuth client is registered with. Only CI sets these.
+        val stagingKeystore = System.getenv("ANDROID_STAGING_KEYSTORE_FILE").orEmpty()
+        if (stagingKeystore.isNotBlank()) {
+            create("staging") {
+                storeFile = file(stagingKeystore)
+                storePassword = System.getenv("ANDROID_STAGING_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_STAGING_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_STAGING_KEYSTORE_PASSWORD")
+            }
+        }
         if (keystoreProperties.containsKey("storeFile")) {
             create("release") {
                 storeFile = file(keystoreProperties.getProperty("storeFile"))
@@ -83,6 +94,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfigs.findByName("staging")?.let { signingConfig = it }
+        }
         release {
             // Without android/key.properties the release build is signed with the
             // debug key, so CI and local builds work without secrets.
