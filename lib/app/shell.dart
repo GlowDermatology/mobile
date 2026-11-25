@@ -45,6 +45,18 @@ class AppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.gd;
     final badge = ref.watch(cartBadgeProvider);
+    // Android back on the root of another tab returns to the catalog tab
+    // instead of leaving the app; on the catalog it leaves as usual.
+    return PopScope(
+      canPop: shell.currentIndex == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && shell.currentIndex != 0) shell.goBranch(0);
+      },
+      child: _scaffold(context, c, badge),
+    );
+  }
+
+  Widget _scaffold(BuildContext context, GdColors c, int badge) {
     return Scaffold(
       body: shell,
       bottomNavigationBar: DecoratedBox(

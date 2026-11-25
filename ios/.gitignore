@@ -32,3 +32,6 @@ Runner/GeneratedPluginRegistrant.*
 !default.mode2v3
 !default.pbxuser
 !default.perspectivev3
+
+# Local social sign-in ids (docs/env.md)
+Flutter/Social.local.xcconfig

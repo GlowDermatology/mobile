@@ -43,4 +43,29 @@ abstract final class AppConfig {
     'MAP_TILE_URL',
     defaultValue: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   );
+
+  /// Google sign-in (customer contract §2.1.8): the **web** OAuth client id
+  /// of the Google Cloud project. Android asks Google for ID tokens issued to
+  /// it (the backend's `GOOGLE_APP_CLIENT_IDS` must list it). Empty hides
+  /// the Google button on Android.
+  static const String googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+  );
+
+  /// Google sign-in on iOS: the **iOS** OAuth client id (also in
+  /// `GOOGLE_APP_CLIENT_IDS`; its reversed form is the URL scheme in
+  /// `ios/Flutter/Social.xcconfig`). Empty hides the Google button on iOS.
+  static const String googleIosClientId = String.fromEnvironment(
+    'GOOGLE_IOS_CLIENT_ID',
+  );
+
+  /// Facebook sign-in: the app id (the backend's `FACEBOOK_APP_ID`). The
+  /// Android build reads the same define for its manifest; iOS takes it from
+  /// `ios/Flutter/Social.xcconfig`. Empty hides the Facebook button.
+  static const String facebookAppId = String.fromEnvironment('FACEBOOK_APP_ID');
+
+  /// Facebook client token (App settings → Advanced); a public identifier.
+  static const String facebookClientToken = String.fromEnvironment(
+    'FACEBOOK_CLIENT_TOKEN',
+  );
 }

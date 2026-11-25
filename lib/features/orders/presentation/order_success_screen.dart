@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/gd_colors.dart';
 import '../../../app/theme/gd_theme.dart';
 import '../../../core/format/money.dart';
+import '../../../core/i18n/strings.dart';
 import '../../../core/i18n/tr.dart';
 import '../../../core/widgets/gd_widgets.dart';
 import '../../../core/widgets/rings.dart';
@@ -37,7 +38,27 @@ class _OrderSuccessScreenState extends ConsumerState<OrderSuccessScreen> {
   Widget build(BuildContext context) {
     final async = ref.watch(orderDetailProvider(widget.orderId));
     return Scaffold(
+      // The success page replaced the payment flow: closing it leads to the
+      // order (or the catalog when the order id is unknown), never back.
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        actions: [
+          Semantics(
+            identifier: 'success.close',
+            button: true,
+            child: IconButton(
+              tooltip: Strings.close.of(context),
+              icon: const Icon(Icons.close),
+              onPressed: () => context.go(
+                widget.orderId > 0 ? '/orders/${widget.orderId}' : '/catalog',
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SafeArea(
+        top: false,
         child: switch (async) {
           AsyncData(:final value) => _content(context, value),
           AsyncError(:final error) => GdErrorView(
@@ -56,7 +77,7 @@ class _OrderSuccessScreenState extends ConsumerState<OrderSuccessScreen> {
     final lang = context.language;
     final provider = providerName(order.payment.provider);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(GdSpace.page, 36, GdSpace.page, 24),
+      padding: const EdgeInsets.fromLTRB(GdSpace.page, 4, GdSpace.page, 24),
       children: [
         Center(
           child: SizedBox.square(

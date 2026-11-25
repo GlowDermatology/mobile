@@ -211,10 +211,10 @@ class _HomeHeader extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(GdSpace.page, 14, 8, 10),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Align(
               alignment: Alignment.centerLeft,
-              child: GdWordmark(size: 30),
+              child: GdWordmark(size: 30, onTap: () => context.go('/catalog')),
             ),
           ),
           Semantics(

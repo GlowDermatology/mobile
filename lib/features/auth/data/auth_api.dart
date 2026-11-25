@@ -8,30 +8,46 @@ class AuthApi {
   AuthApi(this._api);
   final ApiClient _api;
 
-  Future<CodeIssue> sendCode(String phone, OtpPurpose purpose) async =>
-      CodeIssue.fromJson(
-        asJson(
-          await _api.post(
-            'auth/send-code/',
-            body: {'phone': phone, 'purpose': purpose.code},
-          ),
-        ),
-      );
+  /// `auth/send-code/` for `register`, `reset_password` or `link_social`
+  /// (with the [socialTicket]); the code goes by SMS or e-mail, following the
+  /// identifier.
+  Future<CodeIssue> sendCode(
+    AuthIdentifier identifier,
+    OtpPurpose purpose, {
+    String? socialTicket,
+  }) async => CodeIssue.fromJson(
+    asJson(
+      await _api.post(
+        'auth/send-code/',
+        body: {
+          ...identifier.body,
+          'purpose': purpose.code,
+          'social_ticket': ?socialTicket,
+        },
+      ),
+    ),
+  );
 
-  /// Returns the single-use `verification_token`.
-  Future<String> verifyCode(
-    String phone,
+  /// `auth/verify-code/`. [otpChannel] names where a new-device code was
+  /// re-sent ("Kodni e-mailga yuborish"); the identifier stays the one typed.
+  Future<Verification> verifyCode(
+    AuthIdentifier identifier,
     OtpPurpose purpose,
-    String code,
-  ) async {
-    final j = asJson(
+    String code, {
+    OtpChannel? otpChannel,
+  }) async => Verification.fromJson(
+    asJson(
       await _api.post(
         'auth/verify-code/',
-        body: {'phone': phone, 'purpose': purpose.code, 'code': code},
+        body: {
+          ...identifier.body,
+          'purpose': purpose.code,
+          'code': code,
+          'otp_channel': ?otpChannel?.code,
+        },
       ),
-    );
-    return asString(j['verification_token']);
-  }
+    ),
+  );
 
   Future<Json> register({
     required String verificationToken,
@@ -52,31 +68,28 @@ class AuthApi {
     ),
   );
 
+  /// `auth/login/`. Without a token on a new device the server sends a code
+  /// ([LoginNeedsCode]); [otpChannel] asks for it on the account's other
+  /// verified identifier (newer backends).
   Future<LoginResult> login(
-    String phone,
+    AuthIdentifier identifier,
     String password, {
     String? verificationToken,
+    OtpChannel? otpChannel,
   }) async {
     final j = asJson(
       await _api.post(
         'auth/login/',
         body: {
-          'phone': phone,
+          ...identifier.body,
           'password': password,
           'verification_token': verificationToken,
+          'otp_channel': ?otpChannel?.code,
         },
       ),
     );
     if (j['next_step'] == 'verify_device') {
-      final otp = asJson(j['otp']);
-      return LoginNeedsCode(
-        CodeIssue(
-          phoneMask: asString(j['phone_mask']),
-          expiresIn: asInt(otp['expires_in'], 120),
-          resendIn: asInt(otp['resend_in'], 60),
-          length: asInt(otp['length'], 6),
-        ),
-      );
+      return LoginNeedsCode(NextStep.fromJson(j));
     }
     return LoginSignedIn(j);
   }
@@ -88,6 +101,58 @@ class AuthApi {
           body: {'verification_token': verificationToken, 'password': password},
         ),
       );
+
+  /// `GET auth/social/nonce/`: single use, fetched before every attempt.
+  Future<String> socialNonce() async =>
+      asString(asJson(await _api.get('auth/social/nonce/'))['nonce']);
+
+  /// `POST auth/social/` with the provider SDK's token.
+  Future<SocialResult> social({
+    required SocialProvider provider,
+    required String token,
+    required String tokenType,
+    String? nonce,
+  }) async {
+    final j = asJson(
+      await _api.post(
+        'auth/social/',
+        body: {
+          'provider': provider.code,
+          'token': token,
+          'token_type': tokenType,
+          'nonce': nonce,
+        },
+      ),
+    );
+    if (j['next_step'] == 'verify_phone') {
+      return SocialNeedsCompletion(NextStep.fromJson(j));
+    }
+    return SocialSignedIn(j);
+  }
+
+  /// `POST auth/social/complete/`: without [verificationToken] a new account
+  /// without a phone (needs [name] and [termsVersion]); with one, the linked
+  /// account (its [password] when it has one).
+  Future<Json> socialComplete({
+    required String socialTicket,
+    String? verificationToken,
+    String? password,
+    String? name,
+    String? termsVersion,
+    required AppLanguage language,
+  }) async => asJson(
+    await _api.post(
+      'auth/social/complete/',
+      body: {
+        'social_ticket': socialTicket,
+        'verification_token': verificationToken,
+        'password': password,
+        'name': name,
+        'terms_version': termsVersion,
+        'language': language.code,
+      },
+    ),
+  );
 
   Future<Me> me() async => Me.fromJson(asJson(await _api.get('me/')));
 

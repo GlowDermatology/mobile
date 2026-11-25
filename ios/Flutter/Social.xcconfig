@@ -1,0 +1,14 @@
+// Social sign-in ids of the iOS build (public identifiers, docs/env.md), read by
+// ios/Runner/Info.plist. Paste the real values here, or put them in the git-ignored
+// Social.local.xcconfig next to this file, which overrides them. The Dart side takes the
+// same ids from the dart-defines (GOOGLE_IOS_CLIENT_ID, FACEBOOK_APP_ID, FACEBOOK_CLIENT_TOKEN).
+
+// Facebook app id and client token (developers.facebook.com → the app → App settings).
+FACEBOOK_APP_ID =
+FACEBOOK_CLIENT_TOKEN =
+
+// The iOS OAuth client id reversed (Google Cloud → Credentials → the iOS client → "iOS URL
+// scheme"), e.g. com.googleusercontent.apps.1234567890-abcdefg.
+GOOGLE_REVERSED_CLIENT_ID =
+
+#include? "Social.local.xcconfig"

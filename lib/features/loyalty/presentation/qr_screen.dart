@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 
+import '../../../app/router.dart';
 import '../../../app/theme/gd_colors.dart';
 import '../../../app/theme/gd_theme.dart';
 import '../../../core/format/dates.dart';
@@ -195,6 +196,9 @@ class _QrScreenState extends ConsumerState<QrScreen> {
       sessionProvider.select((s) => s.signedIn),
       (_, _) => _scheduleSync(),
     );
+    if (!ref.watch(sessionProvider.select((s) => s.signedIn))) {
+      return const _SignedOut();
+    }
     final ledger = ref.watch(ledgerProvider);
     final items = ledger.value?.items ?? const <LedgerItem>[];
     return Scaffold(
@@ -285,6 +289,40 @@ class _QrScreenState extends ConsumerState<QrScreen> {
     final attached = await context.push<bool>('/settings/phone') ?? false;
     if (attached && mounted) await _qr.refresh();
   }
+}
+
+/// A guest keeps the tab bar: no QR, no request, a "Kirish" button that
+/// opens the sign-in screen over the shell and comes back here.
+class _SignedOut extends StatelessWidget {
+  const _SignedOut();
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(
+      bottom: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _Header(brightnessRaised: false),
+          Expanded(
+            child: GdEmptyView(
+              icon: Icons.qr_code_2_rounded,
+              title: LoyaltyText.signedOutTitle.of(context),
+              body: LoyaltyText.signedOutBody.of(context),
+              action: SizedBox(
+                width: 220,
+                child: GdButton(
+                  label: LoyaltyText.signIn.of(context),
+                  semanticsId: 'qr.signIn',
+                  onPressed: () => goSignIn(context, next: '/qr'),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _Header extends StatelessWidget {

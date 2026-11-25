@@ -43,17 +43,23 @@ test.beforeAll(async ({ browser }) => {
   await settle(5000);
 });
 
-test("guest sees the catalog and is asked to sign in for the cart", async () => {
+test("guest sees the catalog; the cart tab stays in the shell and asks to sign in", async () => {
   await expect(sem("tab.catalog")).toBeVisible();
   await shot("01-home-guest");
   await sem("tab.cart").click();
-  await expect(sem("auth.phone")).toBeVisible();
+  await expect(sem("cart.signIn")).toBeVisible();
+  await expect(sem("tab.catalog")).toBeVisible();
+  await sem("cart.signIn").click();
+  await expect(sem("auth.mode.signup")).toBeVisible();
 });
 
-test("sign up: phone, SMS code, name and password", async () => {
+test("sign up: explicit mode, phone, SMS code, then name, password and consent", async () => {
+  await sem("auth.mode.signup").click();
+  await settle(500);
   await shot("02-welcome");
+  await expect(sem("auth.consent")).toHaveCount(0); // asked on the details step only
+  await sem("auth.channel.phone").click();
   await typeInto("auth.phone", national);
-  await sem("auth.consent").click();
   await sem("auth.getCode").click();
   await expect(sem("auth.otp")).toBeVisible();
   await shot("03-otp");
@@ -61,6 +67,7 @@ test("sign up: phone, SMS code, name and password", async () => {
   await expect(sem("auth.name")).toBeVisible();
   await typeInto("auth.name", "Test Mijoz");
   await typeInto("auth.newPassword", PASSWORD);
+  await sem("auth.consent").click();
   await sem("auth.register").click();
   await expect(sem("cart.toCatalog").or(sem("cart.pay"))).toBeVisible();
 });
@@ -269,11 +276,11 @@ test("sign out, then sign in again with the password on this known device (no SM
   await settle(800);
   await sem("settings.signout.confirm").click();
   await settle(2000);
-  await open("/auth");
+  await open("/auth?mode=signin");
+  await expect(sem("auth.mode.signin")).toBeVisible();
+  await expect(sem("auth.consent")).toHaveCount(0); // no consent to sign in
+  await sem("auth.channel.phone").click();
   await typeInto("auth.phone", national);
-  await sem("auth.consent").click();
-  await sem("auth.getCode").click();
-  await expect(sem("auth.password")).toBeVisible();
   await typeInto("auth.password", PASSWORD);
   await sem("auth.signIn").click();
   await settle(3000);
