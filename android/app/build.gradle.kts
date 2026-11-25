@@ -1,3 +1,4 @@
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -23,7 +24,7 @@ val dartDefines: Map<String, String> =
         ?.split(",")
         ?.mapNotNull { encoded ->
             val decoded = runCatching {
-                String(java.util.Base64.getDecoder().decode(encoded), Charsets.UTF_8)
+                String(Base64.getDecoder().decode(encoded), Charsets.UTF_8)
             }.getOrNull() ?: return@mapNotNull null
             val equals = decoded.indexOf('=')
             if (equals > 0) decoded.substring(0, equals) to decoded.substring(equals + 1) else null
