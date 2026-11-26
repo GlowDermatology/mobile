@@ -7,7 +7,8 @@ import 'package:glow_derma/features/profile/data/addresses_api.dart';
 import 'package:glow_derma/features/settings/data/public_settings.dart';
 
 // Parsing of the customer API additions on backend main f085416:
-// image variants, delivery providers, map pins, order delivery, cart recovery.
+// image variants, delivery providers, map pins, order delivery, cart recovery;
+// later the image renditions (portrait / square copies).
 
 Map<String, dynamic> _order({
   String status = 'awaiting_payment',
@@ -88,8 +89,16 @@ void main() {
           ],
         });
         expect(detail.gallery, [
-          (url: 'https://m.uz/a_1000.webp', original: 'https://m.uz/a.webp'),
-          (url: 'https://m.uz/b.webp', original: 'https://m.uz/b.webp'),
+          (
+            url: 'https://m.uz/a_1000.webp',
+            original: 'https://m.uz/a.webp',
+            cover: false,
+          ),
+          (
+            url: 'https://m.uz/b.webp',
+            original: 'https://m.uz/b.webp',
+            cover: false,
+          ),
         ]);
       },
     );
@@ -114,6 +123,103 @@ void main() {
             .imageThumbUrl,
         'o',
       );
+    });
+  });
+
+  group('image renditions', () {
+    Map<String, String> shape(String name) => {
+      'url': 'https://m.uz/$name.webp',
+      'medium_url': 'https://m.uz/${name}_1000.webp',
+      'thumbnail_url': 'https://m.uz/${name}_400.webp',
+    };
+
+    test('product card: the tile takes the square copy', () {
+      final card = ProductCard.fromJson({
+        'id': 1,
+        'main_image_url': 'https://m.uz/a.webp',
+        'main_image_medium_url': 'https://m.uz/a_1000.webp',
+        'main_image_renditions': {'portrait': null, 'square': shape('a_sq')},
+      });
+      expect(card.tileUrl, 'https://m.uz/a_sq_1000.webp');
+      expect(card.mediumUrl, 'https://m.uz/a_1000.webp');
+    });
+
+    test('gallery: portrait copies fill the page, the rest as before', () {
+      final detail = ProductDetail.fromJson({
+        'id': 1,
+        'main_image_url': 'https://m.uz/a.webp',
+        'images': [
+          {
+            'id': 1,
+            'url': 'https://m.uz/a.webp',
+            'medium_url': 'https://m.uz/a_1000.webp',
+            'position': 0,
+            'renditions': {'portrait': shape('a_45'), 'square': shape('a_sq')},
+          },
+          {
+            'id': 2,
+            'url': 'https://m.uz/b.webp',
+            'medium_url': 'https://m.uz/b_1000.webp',
+            'position': 1,
+            'renditions': {'portrait': null, 'square': shape('b_sq')},
+          },
+          {
+            'id': 3,
+            'url': 'https://m.uz/c.webp',
+            'position': 2,
+            'renditions': 'broken',
+          },
+        ],
+      });
+      expect(
+        detail.images.first.renditions.square?.url,
+        'https://m.uz/a_sq.webp',
+      );
+      expect(detail.gallery, [
+        (
+          url: 'https://m.uz/a_45_1000.webp',
+          original: 'https://m.uz/a.webp',
+          cover: true,
+        ),
+        (
+          url: 'https://m.uz/b_1000.webp',
+          original: 'https://m.uz/b.webp',
+          cover: false,
+        ),
+        (
+          url: 'https://m.uz/c.webp',
+          original: 'https://m.uz/c.webp',
+          cover: false,
+        ),
+      ]);
+    });
+
+    test('gallery without images: the portrait copy of the main image', () {
+      final detail = ProductDetail.fromJson({
+        'id': 1,
+        'main_image_url': 'https://m.uz/a.webp',
+        'main_image_renditions': {'portrait': shape('a_45'), 'square': null},
+        'images': <Object>[],
+      });
+      expect(detail.gallery, [
+        (
+          url: 'https://m.uz/a_45_1000.webp',
+          original: 'https://m.uz/a.webp',
+          cover: true,
+        ),
+      ]);
+    });
+
+    test('cart line: the square 400 px copy, kept through a local preview', () {
+      final line = CartLine.fromJson({
+        'product_id': 1,
+        'main_image_url': 'o',
+        'main_image_thumbnail_url': 't',
+        'main_image_renditions': {'portrait': null, 'square': shape('a_sq')},
+      });
+      expect(line.thumbUrl, 'https://m.uz/a_sq_400.webp');
+      expect(line.withQuantity(2).thumbUrl, 'https://m.uz/a_sq_400.webp');
+      expect(line.imageUrl, 'o');
     });
   });
 

@@ -1,4 +1,5 @@
 import '../../../core/network/json.dart';
+import '../../catalog/data/catalog_models.dart';
 import '../../orders/data/order_models.dart';
 
 /// `CartLineStatus` (contract §2.5).
@@ -28,6 +29,7 @@ class CartLine {
     required this.priceChanged,
     required this.previousPrice,
     this.imageThumbnailUrl,
+    this.imageRenditions = ImageRenditions.none,
   });
 
   factory CartLine.fromJson(Json j) => CartLine(
@@ -36,6 +38,7 @@ class CartLine {
     volume: asString(j['volume']),
     imageUrl: asStringOrNull(j['main_image_url']),
     imageThumbnailUrl: asStringOrNull(j['main_image_thumbnail_url']),
+    imageRenditions: ImageRenditions.fromJson(j['main_image_renditions']),
     unitPrice: asInt(j['unit_price']),
     promo: asBool(j['promo']),
     quantity: asInt(j['quantity'], 1),
@@ -55,7 +58,14 @@ class CartLine {
 
   /// 400 px variant (null → the original).
   final String? imageThumbnailUrl;
-  String? get thumbUrl => imageThumbnailUrl ?? imageUrl;
+
+  /// Portrait / square copies of the main image.
+  final ImageRenditions imageRenditions;
+
+  /// The square thumbnail of the line: the square copy's 400 px variant, else
+  /// the image's own.
+  String? get thumbUrl =>
+      imageRenditions.square?.thumbnailUrl ?? imageThumbnailUrl ?? imageUrl;
   final int unitPrice;
   final bool promo;
   final int quantity;
@@ -73,6 +83,7 @@ class CartLine {
     volume: volume,
     imageUrl: imageUrl,
     imageThumbnailUrl: imageThumbnailUrl,
+    imageRenditions: imageRenditions,
     unitPrice: unitPrice,
     promo: promo,
     quantity: q,

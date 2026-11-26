@@ -62,6 +62,67 @@ void main() {
     });
   });
 
+  group('ImageRenditions', () {
+    const shape = {
+      'url': 'https://m.uz/s.webp',
+      'medium_url': 'https://m.uz/s_1000.webp',
+      'thumbnail_url': 'https://m.uz/s_400.webp',
+    };
+
+    test('present: both shapes', () {
+      final r = ImageRenditions.fromJson({
+        'portrait': {...shape, 'url': 'https://m.uz/p.webp'},
+        'square': shape,
+      });
+      expect(r.portrait?.url, 'https://m.uz/p.webp');
+      expect(r.square?.url, 'https://m.uz/s.webp');
+      expect(r.square?.mediumUrl, 'https://m.uz/s_1000.webp');
+      expect(r.square?.thumbnailUrl, 'https://m.uz/s_400.webp');
+    });
+
+    test('absent, null or not an object: none', () {
+      for (final v in <Object?>[null, 'x', 3, <Object>[], <String, Object>{}]) {
+        final r = ImageRenditions.fromJson(v);
+        expect(r.portrait, isNull, reason: '$v');
+        expect(r.square, isNull, reason: '$v');
+      }
+      final card = ProductCard.fromJson(cardJson());
+      expect(card.mainImageRenditions.square, isNull);
+      expect(card.tileUrl, card.mainImageUrl);
+    });
+
+    test('a malformed shape is dropped, the other kept', () {
+      for (final bad in <Object?>[
+        'https://m.uz/s.webp',
+        <Object>[],
+        {...shape, 'medium_url': null},
+        {...shape, 'thumbnail_url': 400},
+        {...shape, 'url': ''},
+        {'url': 'https://m.uz/s.webp'},
+      ]) {
+        final r = ImageRenditions.fromJson({'portrait': bad, 'square': shape});
+        expect(r.portrait, isNull, reason: '$bad');
+        expect(r.square?.mediumUrl, 'https://m.uz/s_1000.webp');
+      }
+    });
+
+    test('the card tile prefers the square 1000 px copy', () {
+      final card = ProductCard.fromJson({
+        ...cardJson(),
+        'main_image_medium_url': 'https://m.uz/a_1000.webp',
+        'main_image_renditions': {'portrait': shape, 'square': null},
+      });
+      expect(card.tileUrl, 'https://m.uz/a_1000.webp'); // portrait is unused
+      final withSquare = ProductCard.fromJson({
+        ...cardJson(),
+        'main_image_medium_url': 'https://m.uz/a_1000.webp',
+        'main_image_renditions': {'portrait': null, 'square': shape},
+      });
+      expect(withSquare.tileUrl, 'https://m.uz/s_1000.webp');
+      expect(withSquare.mediumUrl, 'https://m.uz/a_1000.webp');
+    });
+  });
+
   group('ProductDetail', () {
     test('sorts the gallery and reads texts', () {
       final d = ProductDetail.fromJson({

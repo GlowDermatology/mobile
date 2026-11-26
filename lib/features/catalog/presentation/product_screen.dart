@@ -392,35 +392,48 @@ class _HeroState extends State<_Hero> {
               bottom: 10,
               child: GdRings(count: 3, color: c.gold.withValues(alpha: 0.55)),
             ),
-            Positioned.fill(
-              top: top + 64,
-              bottom: 52,
-              child: urls.isEmpty
-                  ? Center(child: ProductArtFallback(seed: p.card.artSeed))
-                  : PageView.builder(
-                      controller: _controller,
-                      itemCount: urls.length,
-                      onPageChanged: (i) => setState(() => _index = i),
-                      itemBuilder: (context, i) => Semantics(
-                        image: true,
-                        label: CatalogText.imageLabel.fmt(context, {
-                          'i': i + 1,
-                          'n': urls.length,
-                        }),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 48),
-                          child: GdImage(
+            if (urls.isEmpty)
+              Positioned.fill(
+                top: top + 64,
+                bottom: 52,
+                child: Center(child: ProductArtFallback(seed: p.card.artSeed)),
+              )
+            else
+              // The pages span the whole hero: a portrait copy fills it, the
+              // image itself sits whole in the inset box on the rings.
+              Positioned.fill(
+                child: PageView.builder(
+                  controller: _controller,
+                  itemCount: urls.length,
+                  onPageChanged: (i) => setState(() => _index = i),
+                  itemBuilder: (context, i) => Semantics(
+                    image: true,
+                    label: CatalogText.imageLabel.fmt(context, {
+                      'i': i + 1,
+                      'n': urls.length,
+                    }),
+                    child: urls[i].cover
+                        ? GdImage(
                             url: urls[i].url,
                             fallbackUrl: urls[i].original,
                             seed: p.card.artSeed,
-                            fit: BoxFit.contain,
-                            radius: 16,
+                            radius: 0,
                             artSize: 140,
+                          )
+                        : Padding(
+                            padding: EdgeInsets.fromLTRB(48, top + 64, 48, 52),
+                            child: GdImage(
+                              url: urls[i].url,
+                              fallbackUrl: urls[i].original,
+                              seed: p.card.artSeed,
+                              fit: BoxFit.contain,
+                              radius: 16,
+                              artSize: 140,
+                            ),
                           ),
-                        ),
-                      ),
-                    ),
-            ),
+                  ),
+                ),
+              ),
             Positioned(
               top: top + 10,
               left: 14,

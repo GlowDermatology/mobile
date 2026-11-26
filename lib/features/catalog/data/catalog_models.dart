@@ -43,6 +43,54 @@ class CatalogCategory {
   String? get thumbUrl => imageThumbnailUrl ?? imageUrl;
 }
 
+/// One screen-shaped copy of a product image: full size (long side ≤ 2000 px)
+/// and its 1000 px / 400 px WebP variants.
+@immutable
+class ImageRendition {
+  const ImageRendition({
+    required this.url,
+    required this.mediumUrl,
+    required this.thumbnailUrl,
+  });
+
+  /// Null unless all three URLs are non-empty strings.
+  static ImageRendition? fromJson(Object? v) {
+    if (v is! Map) return null;
+    String? url(Object? s) => s is String && s.isNotEmpty ? s : null;
+    final full = url(v['url']);
+    final medium = url(v['medium_url']);
+    final thumb = url(v['thumbnail_url']);
+    if (full == null || medium == null || thumb == null) return null;
+    return ImageRendition(url: full, mediumUrl: medium, thumbnailUrl: thumb);
+  }
+
+  final String url;
+  final String mediumUrl;
+  final String thumbnailUrl;
+}
+
+/// `renditions` of a product image: a 4:5 [portrait] and a 1:1 [square],
+/// each null until staff make it (then the image itself is shown). A missing
+/// or malformed object reads as [none].
+@immutable
+class ImageRenditions {
+  const ImageRenditions({this.portrait, this.square});
+
+  factory ImageRenditions.fromJson(Object? v) {
+    if (v is! Map) return none;
+    final portrait = ImageRendition.fromJson(v['portrait']);
+    final square = ImageRendition.fromJson(v['square']);
+    return portrait == null && square == null
+        ? none
+        : ImageRenditions(portrait: portrait, square: square);
+  }
+
+  static const none = ImageRenditions();
+
+  final ImageRendition? portrait;
+  final ImageRendition? square;
+}
+
 enum StockStatus { inStock, outOfStock }
 
 StockStatus _stock(Object? v, int available) => switch (v) {
@@ -68,6 +116,7 @@ class ProductCard {
     required this.inCartQuantity,
     this.mainImageThumbnailUrl,
     this.mainImageMediumUrl,
+    this.mainImageRenditions = ImageRenditions.none,
   });
 
   factory ProductCard.fromJson(Json j) {
@@ -84,6 +133,7 @@ class ProductCard {
       mainImageUrl: asStringOrNull(j['main_image_url']),
       mainImageThumbnailUrl: asStringOrNull(j['main_image_thumbnail_url']),
       mainImageMediumUrl: asStringOrNull(j['main_image_medium_url']),
+      mainImageRenditions: ImageRenditions.fromJson(j['main_image_renditions']),
       available: available,
       stockStatus: _stock(j['stock_status'], available),
       inCartQuantity: asInt(j['in_cart_quantity']),
@@ -104,6 +154,13 @@ class ProductCard {
   final String? mainImageMediumUrl;
   String? get thumbUrl => mainImageThumbnailUrl ?? mainImageUrl;
   String? get mediumUrl => mainImageMediumUrl ?? mainImageUrl;
+
+  /// Portrait / square copies of the main image.
+  final ImageRenditions mainImageRenditions;
+
+  /// The (≈ square) card tile: the square copy's 1000 px variant, else
+  /// [mediumUrl].
+  String? get tileUrl => mainImageRenditions.square?.mediumUrl ?? mediumUrl;
   final int available;
   final StockStatus stockStatus;
   final int inCartQuantity;
@@ -128,6 +185,7 @@ class ProductImage {
     required this.position,
     this.thumbnailUrl,
     this.mediumUrl,
+    this.renditions = ImageRenditions.none,
   });
 
   factory ProductImage.fromJson(Json j) => ProductImage(
@@ -136,6 +194,7 @@ class ProductImage {
     position: asInt(j['position']),
     thumbnailUrl: asStringOrNull(j['thumbnail_url']),
     mediumUrl: asStringOrNull(j['medium_url']),
+    renditions: ImageRenditions.fromJson(j['renditions']),
   );
 
   final int id;
@@ -143,11 +202,13 @@ class ProductImage {
   final int position;
   final String? thumbnailUrl;
   final String? mediumUrl;
+  final ImageRenditions renditions;
 }
 
 /// One gallery page: the 1000 px variant to show and the original to fall
-/// back to.
-typedef GalleryImage = ({String url, String original});
+/// back to. [cover] pages are the 4:5 portrait copy, shown filling the hero;
+/// the others are the image itself, shown whole.
+typedef GalleryImage = ({String url, String original, bool cover});
 
 /// `ProductDetail` = card + texts, gallery and `max_quantity`.
 @immutable
@@ -196,20 +257,29 @@ class ProductDetail {
     return main == null || main.isEmpty ? const [] : [main];
   }
 
-  /// The gallery as 1000 px pages with their originals as fallbacks.
+  /// The gallery as 1000 px pages with their originals as fallbacks: the
+  /// portrait copy when there is one, else the image itself.
   List<GalleryImage> get gallery {
+    GalleryImage page(String original, String medium, ImageRenditions r) {
+      final portrait = r.portrait;
+      return portrait != null
+          ? (url: portrait.mediumUrl, original: original, cover: true)
+          : (url: medium, original: original, cover: false);
+    }
+
     if (images.isNotEmpty) {
       return [
         for (final i in images)
-          (
-            url: (i.mediumUrl?.isNotEmpty ?? false) ? i.mediumUrl! : i.url,
-            original: i.url,
+          page(
+            i.url,
+            (i.mediumUrl?.isNotEmpty ?? false) ? i.mediumUrl! : i.url,
+            i.renditions,
           ),
       ];
     }
     final main = card.mainImageUrl;
     if (main == null || main.isEmpty) return const [];
-    return [(url: card.mediumUrl ?? main, original: main)];
+    return [page(main, card.mediumUrl ?? main, card.mainImageRenditions)];
   }
 
   bool get canAdd => maxQuantity > 0 && card.inStock;
