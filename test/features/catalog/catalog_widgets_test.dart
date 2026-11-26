@@ -9,6 +9,7 @@ import 'package:glow_derma/features/catalog/presentation/widgets/product_card_ti
 import 'package:glow_derma/features/loyalty/data/cashback_summary.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:glow_derma/core/widgets/gd_widgets.dart';
 
 import 'catalog_models_test.dart' show cardJson;
 import 'fakes.dart';
@@ -21,18 +22,56 @@ ProductDetail detail({
   bool promo = false,
   int maxQuantity = 10,
   String ingredients = 'Aqua',
+  List<Object> images = const [],
 }) => ProductDetail.fromJson({
   ...cardJson(promo: promo),
   'main_image_url': null,
   'description': 'Gialuron kislotasining uch xil molekulasi',
   'ingredients': ingredients,
   'usage': '',
-  'images': <Object>[],
+  'images': images,
   'max_quantity': maxQuantity,
 });
 
 void main() {
   group('ProductCardTile', () {
+    GdImage image(WidgetTester tester) =>
+        tester.widget<GdImage>(find.byType(GdImage));
+
+    testWidgets('shows the square copy when there is one', (tester) async {
+      final p = ProductCard.fromJson({
+        ...cardJson(),
+        'main_image_medium_url': 'https://m.uz/a_1000.webp',
+        'main_image_renditions': {
+          'portrait': null,
+          'square': {
+            'url': 'https://m.uz/a_sq.webp',
+            'medium_url': 'https://m.uz/a_sq_1000.webp',
+            'thumbnail_url': 'https://m.uz/a_sq_400.webp',
+          },
+        },
+      });
+      await tester.pumpWidget(testApp(tile(p), baseOverrides()));
+      await tester.pumpAndSettle();
+      expect(image(tester).url, 'https://m.uz/a_sq_1000.webp');
+      expect(image(tester).fallbackUrl, p.mainImageUrl);
+      expect(image(tester).fit, BoxFit.cover);
+    });
+
+    testWidgets('without a square copy: the 1000 px image as before', (
+      tester,
+    ) async {
+      final p = ProductCard.fromJson({
+        ...cardJson(),
+        'main_image_medium_url': 'https://m.uz/a_1000.webp',
+        'main_image_renditions': {'portrait': null, 'square': null},
+      });
+      await tester.pumpWidget(testApp(tile(p), baseOverrides()));
+      await tester.pumpAndSettle();
+      expect(image(tester).url, 'https://m.uz/a_1000.webp');
+      expect(image(tester).fallbackUrl, p.mainImageUrl);
+    });
+
     testWidgets('price pill when not in the cart', (tester) async {
       final p = ProductCard.fromJson(
         cardJson(promo: true)..['main_image_url'] = null,
@@ -131,6 +170,72 @@ void main() {
       await tester.pumpWidget(testApp(const ProductScreen(id: 1), o));
       await tester.pumpAndSettle();
     }
+
+    GdImage page(WidgetTester tester) => tester.widget<GdImage>(
+      find.descendant(
+        of: find.byType(PageView),
+        matching: find.byType(GdImage),
+      ),
+    );
+
+    testWidgets('a portrait copy fills the hero', (tester) async {
+      await pump(
+        tester,
+        overrides(
+          detail(
+            images: [
+              {
+                'id': 1,
+                'url': 'https://m.uz/a.webp',
+                'medium_url': 'https://m.uz/a_1000.webp',
+                'position': 0,
+                'renditions': {
+                  'portrait': {
+                    'url': 'https://m.uz/a_45.webp',
+                    'medium_url': 'https://m.uz/a_45_1000.webp',
+                    'thumbnail_url': 'https://m.uz/a_45_400.webp',
+                  },
+                  'square': null,
+                },
+              },
+            ],
+          ),
+        ),
+      );
+      final img = page(tester);
+      expect(img.url, 'https://m.uz/a_45_1000.webp');
+      expect(img.fallbackUrl, 'https://m.uz/a.webp');
+      expect(img.fit, BoxFit.cover);
+      expect(img.radius, 0);
+      // Edge to edge: as wide as the screen.
+      expect(tester.getSize(find.byWidget(img)).width, 390);
+    });
+
+    testWidgets('without one, the image sits whole in the inset box', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        overrides(
+          detail(
+            images: [
+              {
+                'id': 1,
+                'url': 'https://m.uz/a.webp',
+                'medium_url': 'https://m.uz/a_1000.webp',
+                'position': 0,
+              },
+            ],
+          ),
+        ),
+      );
+      final img = page(tester);
+      expect(img.url, 'https://m.uz/a_1000.webp');
+      expect(img.fallbackUrl, 'https://m.uz/a.webp');
+      expect(img.fit, BoxFit.contain);
+      expect(img.radius, 16);
+      expect(tester.getSize(find.byWidget(img)).width, 390 - 96);
+    });
 
     testWidgets('signed in, regular product: cashback chip, tabs, add button', (
       tester,
