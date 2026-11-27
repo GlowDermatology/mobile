@@ -106,20 +106,20 @@ void main() {
       }
     });
 
-    test('the card tile prefers the square 1000 px copy', () {
+    test('the card tile prefers the portrait (4:5) 1000 px copy', () {
       final card = ProductCard.fromJson({
-        ...cardJson(),
-        'main_image_medium_url': 'https://m.uz/a_1000.webp',
-        'main_image_renditions': {'portrait': shape, 'square': null},
-      });
-      expect(card.tileUrl, 'https://m.uz/a_1000.webp'); // portrait is unused
-      final withSquare = ProductCard.fromJson({
         ...cardJson(),
         'main_image_medium_url': 'https://m.uz/a_1000.webp',
         'main_image_renditions': {'portrait': null, 'square': shape},
       });
-      expect(withSquare.tileUrl, 'https://m.uz/s_1000.webp');
-      expect(withSquare.mediumUrl, 'https://m.uz/a_1000.webp');
+      expect(card.tileUrl, 'https://m.uz/a_1000.webp'); // square is unused
+      final withPortrait = ProductCard.fromJson({
+        ...cardJson(),
+        'main_image_medium_url': 'https://m.uz/a_1000.webp',
+        'main_image_renditions': {'portrait': shape, 'square': null},
+      });
+      expect(withPortrait.tileUrl, 'https://m.uz/s_1000.webp');
+      expect(withPortrait.mediumUrl, 'https://m.uz/a_1000.webp');
     });
   });
 

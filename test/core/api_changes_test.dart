@@ -133,14 +133,17 @@ void main() {
       'thumbnail_url': 'https://m.uz/${name}_400.webp',
     };
 
-    test('product card: the tile takes the square copy', () {
+    test('product card: the 4:5 tile takes the portrait copy', () {
       final card = ProductCard.fromJson({
         'id': 1,
         'main_image_url': 'https://m.uz/a.webp',
         'main_image_medium_url': 'https://m.uz/a_1000.webp',
-        'main_image_renditions': {'portrait': null, 'square': shape('a_sq')},
+        'main_image_renditions': {
+          'portrait': shape('a_45'),
+          'square': shape('a_sq'),
+        },
       });
-      expect(card.tileUrl, 'https://m.uz/a_sq_1000.webp');
+      expect(card.tileUrl, 'https://m.uz/a_45_1000.webp');
       expect(card.mediumUrl, 'https://m.uz/a_1000.webp');
     });
 

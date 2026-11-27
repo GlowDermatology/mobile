@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,20 +14,49 @@ import '../../data/catalog_models.dart';
 import '../catalog_text.dart';
 import 'cart_actions.dart';
 
-/// Height of a [ProductCardTile] in a two-column grid, grown with the text
-/// scale so the name and the button never clip.
-double productTileExtent(BuildContext context) {
-  final s = MediaQuery.textScalerOf(context).scale(16) / 16;
-  return 240 + 64 * s;
+/// The space under a tile's photo: card padding, the two-line name, the
+/// subtitle, the gaps and the 44 px action, grown with the text scale.
+double productTileTextExtent(double textScale) => 90 + 64 * textScale;
+
+/// Height of a [ProductCardTile] [width] wide: a 4:5 photo (inside the 10 px
+/// card padding) and the text under it, so photos fill their frame exactly
+/// like the scenes and the 4:5 renditions they show.
+double productTileExtentFor(double width, double textScale) =>
+    (width - 20) * 5 / 4 + productTileTextExtent(textScale);
+
+/// The two-column grid of product tiles: each tile as tall as its own width
+/// asks (a 4:5 photo plus the text), whatever the screen width.
+class ProductGridDelegate extends SliverGridDelegate {
+  const ProductGridDelegate({required this.textScale});
+  final double textScale;
+
+  static const double spacing = 12;
+  static const int columns = 2;
+
+  @override
+  SliverGridLayout getLayout(SliverConstraints constraints) {
+    final width =
+        (constraints.crossAxisExtent - spacing * (columns - 1)) / columns;
+    final extent = productTileExtentFor(width, textScale);
+    return SliverGridRegularTileLayout(
+      crossAxisCount: columns,
+      mainAxisStride: extent + spacing,
+      crossAxisStride: width + spacing,
+      childMainAxisExtent: extent,
+      childCrossAxisExtent: width,
+      reverseCrossAxis: axisDirectionIsReversed(constraints.crossAxisDirection),
+    );
+  }
+
+  @override
+  bool shouldRelayout(ProductGridDelegate oldDelegate) =>
+      oldDelegate.textScale != textScale;
 }
 
 /// Grid delegate shared by the home screen and the catalog list.
 SliverGridDelegate productGridDelegate(BuildContext context) =>
-    SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 2,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      mainAxisExtent: productTileExtent(context),
+    ProductGridDelegate(
+      textScale: MediaQuery.textScalerOf(context).scale(16) / 16,
     );
 
 /// Product card of the design (PDF p.3): image well, name, "30 ml · Serumlar"

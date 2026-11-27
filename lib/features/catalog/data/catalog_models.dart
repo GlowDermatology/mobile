@@ -158,9 +158,9 @@ class ProductCard {
   /// Portrait / square copies of the main image.
   final ImageRenditions mainImageRenditions;
 
-  /// The (≈ square) card tile: the square copy's 1000 px variant, else
-  /// [mediumUrl].
-  String? get tileUrl => mainImageRenditions.square?.mediumUrl ?? mediumUrl;
+  /// The card tile's 4:5 photo: the portrait copy's 1000 px variant (it fills
+  /// the frame exactly), else [mediumUrl] (shown filling it, cropped by cover).
+  String? get tileUrl => mainImageRenditions.portrait?.mediumUrl ?? mediumUrl;
   final int available;
   final StockStatus stockStatus;
   final int inCartQuantity;

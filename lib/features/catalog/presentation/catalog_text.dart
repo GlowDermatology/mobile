@@ -64,6 +64,19 @@ abstract final class CatalogText {
     'Фото {i} из {n}',
     'Image {i} of {n}',
   );
+
+  // The product photo viewer (tap the hero photo).
+  static const enlarge = Tr('Kattalashtirish', 'Увеличить', 'Enlarge');
+  static const viewerHint = Tr(
+    'Ikki barmoq bilan yoki ikki marta bosib kattalashtiring',
+    'Увеличьте двумя пальцами или двойным нажатием',
+    'Pinch or double-tap to zoom in',
+  );
+  static const viewerHintZoomed = Tr(
+    'Suring va ko‘ring · ikki marta bosib kichraytiring',
+    'Двигайте, чтобы рассмотреть · двойное нажатие — уменьшить',
+    'Drag to look around · double-tap to zoom out',
+  );
   static const notFound = Tr(
     'Mahsulot topilmadi',
     'Товар не найден',

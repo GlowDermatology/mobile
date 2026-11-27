@@ -10,6 +10,8 @@ import 'package:glow_derma/features/loyalty/data/cashback_summary.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:glow_derma/core/widgets/gd_widgets.dart';
+import 'package:glow_derma/features/catalog/presentation/widgets/photo_viewer.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import 'catalog_models_test.dart' show cardJson;
 import 'fakes.dart';
@@ -38,22 +40,24 @@ void main() {
     GdImage image(WidgetTester tester) =>
         tester.widget<GdImage>(find.byType(GdImage));
 
-    testWidgets('shows the square copy when there is one', (tester) async {
+    testWidgets('shows the portrait (4:5) copy when there is one', (
+      tester,
+    ) async {
       final p = ProductCard.fromJson({
         ...cardJson(),
         'main_image_medium_url': 'https://m.uz/a_1000.webp',
         'main_image_renditions': {
-          'portrait': null,
-          'square': {
-            'url': 'https://m.uz/a_sq.webp',
-            'medium_url': 'https://m.uz/a_sq_1000.webp',
-            'thumbnail_url': 'https://m.uz/a_sq_400.webp',
+          'portrait': {
+            'url': 'https://m.uz/a_45.webp',
+            'medium_url': 'https://m.uz/a_45_1000.webp',
+            'thumbnail_url': 'https://m.uz/a_45_400.webp',
           },
+          'square': null,
         },
       });
       await tester.pumpWidget(testApp(tile(p), baseOverrides()));
       await tester.pumpAndSettle();
-      expect(image(tester).url, 'https://m.uz/a_sq_1000.webp');
+      expect(image(tester).url, 'https://m.uz/a_45_1000.webp');
       expect(image(tester).fallbackUrl, p.mainImageUrl);
       expect(image(tester).fit, BoxFit.cover);
     });
@@ -211,7 +215,7 @@ void main() {
       expect(tester.getSize(find.byWidget(img)).width, 390);
     });
 
-    testWidgets('without one, the image sits whole in the inset box', (
+    testWidgets('without one, the photo still fills the hero edge to edge', (
       tester,
     ) async {
       await pump(
@@ -232,9 +236,93 @@ void main() {
       final img = page(tester);
       expect(img.url, 'https://m.uz/a_1000.webp');
       expect(img.fallbackUrl, 'https://m.uz/a.webp');
-      expect(img.fit, BoxFit.contain);
-      expect(img.radius, 16);
-      expect(tester.getSize(find.byWidget(img)).width, 390 - 96);
+      expect(img.fit, BoxFit.cover);
+      expect(img.radius, 0);
+      expect(tester.getSize(find.byWidget(img)).width, 390);
+    });
+
+    List<Object> photos(int n) => [
+      for (var i = 1; i <= n; i++)
+        {
+          'id': i,
+          'url': 'https://m.uz/p$i.webp',
+          'medium_url': 'https://m.uz/p${i}_1000.webp',
+          'position': i - 1,
+        },
+    ];
+
+    testWidgets('«Kattalashtirish» opens the photos full screen', (
+      tester,
+    ) async {
+      await pump(tester, overrides(detail(images: photos(3))));
+      final chip = find.bySemanticsIdentifier('product.enlarge');
+      expect(chip, findsOneWidget);
+      expect(find.text('Kattalashtirish'), findsOneWidget);
+      await tester.tap(find.text('Kattalashtirish'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PhotoViewer), findsOneWidget);
+      expect(find.text('3 ta rasmdan 1-si'), findsOneWidget);
+      expect(
+        find.text('Ikki barmoq bilan yoki ikki marta bosib kattalashtiring'),
+        findsOneWidget,
+      );
+      // The whole original photo, not the hero's crop.
+      final shown = tester.widget<CachedNetworkImage>(
+        find
+            .descendant(
+              of: find.byKey(const ValueKey('photo-viewer.zoom.0')),
+              matching: find.byType(CachedNetworkImage),
+            )
+            .first,
+      );
+      expect(shown.imageUrl, 'https://m.uz/p1.webp');
+      expect(shown.fit, BoxFit.contain);
+
+      // A thumbnail jumps; a swipe moves on.
+      await tester.tap(find.bySemanticsIdentifier('photo-viewer.thumb.2'));
+      await tester.pumpAndSettle();
+      expect(find.text('3 ta rasmdan 3-si'), findsOneWidget);
+      await tester.fling(
+        find.byKey(const ValueKey('photo-viewer.pages')),
+        const Offset(300, 0),
+        1000,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('3 ta rasmdan 2-si'), findsOneWidget);
+
+      // A double tap zooms in (the hint says how to get back), and out again.
+      final page = find.byKey(const ValueKey('photo-viewer.zoom.1'));
+      await tester.tap(page);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(page);
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Suring va ko‘ring · ikki marta bosib kichraytiring'),
+        findsOneWidget,
+      );
+      await tester.tap(page);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(page);
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Ikki barmoq bilan yoki ikki marta bosib kattalashtiring'),
+        findsOneWidget,
+      );
+
+      // «Yopish» (a labelled button, not a bare cross) goes back.
+      expect(find.text('Yopish'), findsOneWidget);
+      await tester.tap(find.bySemanticsIdentifier('photo-viewer.close'));
+      await tester.pumpAndSettle();
+      expect(find.byType(PhotoViewer), findsNothing);
+    });
+
+    testWidgets('a tap on the hero photo opens that photo', (tester) async {
+      await pump(tester, overrides(detail(images: photos(2))));
+      await tester.tap(find.byKey(const ValueKey('product.photo.0')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PhotoViewer), findsOneWidget);
+      expect(find.text('2 ta rasmdan 1-si'), findsOneWidget);
     });
 
     testWidgets('signed in, regular product: cashback chip, tabs, add button', (
@@ -244,6 +332,14 @@ void main() {
       expect(find.text('Gialuron kislotali serum'), findsOneWidget);
       expect(find.text(formatMoney(185000)), findsOneWidget);
       expect(find.text('+${formatMoney(1850)} cashback'), findsOneWidget);
+      // Below the 4:5 hero: scroll as a person would.
+      await tester.scrollUntilVisible(
+        find.text('Tarkibi'),
+        200,
+        scrollable: find.byWidgetPredicate(
+          (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+        ),
+      );
       expect(find.text('Omborda bor'), findsOneWidget);
       expect(find.text('Tavsif'), findsOneWidget);
       expect(find.text('Tarkibi'), findsOneWidget);

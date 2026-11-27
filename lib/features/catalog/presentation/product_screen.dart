@@ -19,6 +19,7 @@ import '../data/catalog_providers.dart';
 import 'catalog_text.dart';
 import 'widgets/banner_carousel.dart' show PageDots;
 import 'widgets/cart_actions.dart';
+import 'widgets/photo_viewer.dart';
 import 'widgets/product_card_tile.dart';
 
 /// Product page (PDF p.4): gallery on the rings motif, then the sheet with
@@ -376,7 +377,9 @@ class _HeroState extends State<_Hero> {
     final urls = p.gallery;
     final top = MediaQuery.paddingOf(context).top;
     final width = MediaQuery.sizeOf(context).width;
-    final height = top + (width * 0.9).clamp(300.0, 420.0);
+    // A 4:5 frame (the shape of the portrait copies and the scenes), at most
+    // 620 px tall on big screens.
+    final height = top + (width * 1.25).clamp(300.0, 620.0);
     final count = urls.isEmpty ? 1 : urls.length;
 
     return SizedBox(
@@ -399,8 +402,9 @@ class _HeroState extends State<_Hero> {
                 child: Center(child: ProductArtFallback(seed: p.card.artSeed)),
               )
             else
-              // The pages span the whole hero: a portrait copy fills it, the
-              // image itself sits whole in the inset box on the rings.
+              // Every photo fills the hero edge to edge (a portrait copy
+              // exactly, any other photo cropped by cover); a tap opens it
+              // whole in the full-screen viewer.
               Positioned.fill(
                 child: PageView.builder(
                   controller: _controller,
@@ -408,30 +412,34 @@ class _HeroState extends State<_Hero> {
                   onPageChanged: (i) => setState(() => _index = i),
                   itemBuilder: (context, i) => Semantics(
                     image: true,
-                    label: CatalogText.imageLabel.fmt(context, {
-                      'i': i + 1,
-                      'n': urls.length,
-                    }),
-                    child: urls[i].cover
-                        ? GdImage(
-                            url: urls[i].url,
-                            fallbackUrl: urls[i].original,
-                            seed: p.card.artSeed,
-                            radius: 0,
-                            artSize: 140,
-                          )
-                        : Padding(
-                            padding: EdgeInsets.fromLTRB(48, top + 64, 48, 52),
-                            child: GdImage(
-                              url: urls[i].url,
-                              fallbackUrl: urls[i].original,
-                              seed: p.card.artSeed,
-                              fit: BoxFit.contain,
-                              radius: 16,
-                              artSize: 140,
-                            ),
-                          ),
+                    button: true,
+                    label:
+                        '${CatalogText.enlarge.of(context)}: ${CatalogText.imageLabel.fmt(context, {'i': i + 1, 'n': urls.length})}',
+                    excludeSemantics: true,
+                    onTap: () =>
+                        showPhotoViewer(context, images: urls, initial: i),
+                    child: GestureDetector(
+                      key: ValueKey('product.photo.$i'),
+                      onTap: () =>
+                          showPhotoViewer(context, images: urls, initial: i),
+                      child: GdImage(
+                        url: urls[i].url,
+                        fallbackUrl: urls[i].original,
+                        seed: p.card.artSeed,
+                        radius: 0,
+                        artSize: 140,
+                      ),
+                    ),
                   ),
+                ),
+              ),
+            if (urls.isNotEmpty)
+              Positioned(
+                right: 16,
+                bottom: 34,
+                child: _EnlargeChip(
+                  onTap: () =>
+                      showPhotoViewer(context, images: urls, initial: _index),
                 ),
               ),
             Positioned(
@@ -516,6 +524,45 @@ class _HeroState extends State<_Hero> {
 
 void _back(BuildContext context) =>
     context.canPop() ? context.pop() : context.go('/catalog');
+
+/// «Kattalashtirish» on the hero photo: says in words that it opens full
+/// screen (the photo itself does too).
+class _EnlargeChip extends StatelessWidget {
+  const _EnlargeChip({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.gd;
+    final label = CatalogText.enlarge.of(context);
+    return Semantics(
+      identifier: 'product.enlarge',
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: Material(
+        color: c.surfaceRaised.withValues(alpha: 0.92),
+        shape: const StadiumBorder(),
+        elevation: 0,
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.zoom_in_rounded, size: 20, color: c.ink),
+                const SizedBox(width: 6),
+                Text(label, style: context.gdText.label.copyWith(fontSize: 14)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// The illustrated bottle when a product has no photo.
 class ProductArtFallback extends StatelessWidget {
